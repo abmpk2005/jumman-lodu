@@ -1,4 +1,4 @@
-name: Build Jumman Ludo (WhatsApp & Telegram Only)
+name: Build Jumman Ludo Master Edition
 
 on:
   push:
@@ -24,7 +24,7 @@ jobs:
           flutter-version: '3.19.6'
           channel: 'stable'
 
-      - name: Generate App Without Call Option
+      - name: Generate Master Application
         run: |
           flutter create --org com.jumman.ludo --project-name jumman_ludo .
           
@@ -34,7 +34,7 @@ jobs:
           # ২. ডিপেন্ডেন্সি কনফিগারেশন
           cat << 'EOF' > pubspec.yaml
           name: jumman_ludo
-          description: "Jumman Ludo Complete App With Chat Support Only"
+          description: "Jumman Ludo Master Edition with In-App Updater"
           publish_to: "none"
           version: 1.0.0+1
           environment:
@@ -63,7 +63,9 @@ jobs:
           const String supabaseUrl = 'https://tjagciqfcijvszqtsxhr.supabase.co';
           const String supabaseAnonKey = 'sb_publishable_jkd8rKF0gJHgml6kxmOxig_1mWaF7Sm';
           const String masterAdminPin = '7742';
-          const String supportNumberWithCode = '8801774229222';
+          
+          // অ্যাপের বর্তমান লোকাল ভার্সন
+          const String currentAppVersion = '1.0.0';
 
           void main() async {
             WidgetsFlutterBinding.ensureInitialized();
@@ -91,7 +93,7 @@ jobs:
             }
           }
 
-          // ১. স্প্ল্যাশ স্ক্রিন
+          // ১. স্প্ল্যাশ স্ক্রিন ও স্বয়ংক্রিয় আপডেট / মেইনটেন্যান্স চেকার
           class SplashScreen extends StatefulWidget {
             const SplashScreen({super.key});
             @override
@@ -102,19 +104,45 @@ jobs:
             @override
             void initState() {
               super.initState();
-              _init();
+              _checkSystemStatus();
             }
 
-            Future<void> _init() async {
-              await Future.delayed(const Duration(seconds: 3));
+            Future<void> _checkSystemStatus() async {
+              await Future.delayed(const Duration(seconds: 2));
+
+              Map<String, dynamic>? config;
+              try {
+                final supabase = Supabase.instance.client;
+                config = await supabase.from('app_config').select().eq('id', 1).maybeSingle();
+              } catch (_) {}
+
+              if (!mounted) return;
+
+              // ক. মেইনটেন্যান্স মোড চেক
+              if (config != null && config['is_maintenance'] == true) {
+                final msg = config['maintenance_message'] ?? "সার্ভারের কাজ চলছে, কিছুক্ষণ পর আসুন।";
+                Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => MaintenanceScreen(message: msg)));
+                return;
+              }
+
+              // খ. অটো আপডেট চেক
+              if (config != null) {
+                final latestVer = config['latest_version'] ?? '1.0.0';
+                final downloadUrl = config['apk_download_url'] ?? 'https://github.com/abmpk2005/jumman-lodu';
+
+                if (latestVer != currentAppVersion) {
+                  Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => UpdateScreen(downloadUrl: downloadUrl, latestVersion: latestVer)));
+                  return;
+                }
+              }
+
+              // গ. ব্যবহারকারী লগইন চেক
               final prefs = await SharedPreferences.getInstance();
               final phone = prefs.getString('user_phone');
-              if (mounted) {
-                if (phone != null && phone.isNotEmpty) {
-                  Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomeScreen(phone: phone)));
-                } else {
-                  Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
-                }
+              if (phone != null && phone.isNotEmpty) {
+                Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomeScreen(phone: phone, config: config)));
+              } else {
+                Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => LoginScreen(config: config)));
               }
             }
 
@@ -137,37 +165,26 @@ jobs:
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(color: Colors.amber.withOpacity(0.4), blurRadius: 40, spreadRadius: 10)
-                          ],
+                          boxShadow: [BoxShadow(color: Colors.amber.withOpacity(0.4), blurRadius: 40, spreadRadius: 10)],
                         ),
                         child: const Icon(Icons.casino, size: 100, color: Color(0xFFFFD700)),
                       ),
                       const SizedBox(height: 16),
                       ShaderMask(
-                        shaderCallback: (bounds) => const LinearGradient(
-                          colors: [Color(0xFFFFDF00), Color(0xFFFF4500)],
-                        ).createShader(bounds),
-                        child: const Text(
-                          "JUMMAN LUDO",
-                          style: TextStyle(fontSize: 34, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 2),
-                        ),
+                        shaderCallback: (bounds) => const LinearGradient(colors: [Color(0xFFFFDF00), Color(0xFFFF4500)]).createShader(bounds),
+                        child: const Text("JUMMAN LUDO", style: TextStyle(fontSize: 34, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 2)),
                       ),
-                      const Text("★ STAR EDITION ★", style: TextStyle(color: Colors.amberAccent, letterSpacing: 3, fontWeight: FontWeight.bold)),
+                      const Text("★ MASTER EDITION ★", style: TextStyle(color: Colors.amberAccent, letterSpacing: 3, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 40),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 50),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 50),
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(20),
-                          child: const LinearProgressIndicator(
-                            minHeight: 12,
-                            backgroundColor: Color(0xFF3B0C46),
-                            color: Colors.greenAccent,
-                          ),
+                          borderRadius: BorderRadius.all(Radius.circular(20)),
+                          child: LinearProgressIndicator(minHeight: 10, backgroundColor: Color(0xFF3B0C46), color: Colors.greenAccent),
                         ),
                       ),
                       const SizedBox(height: 14),
-                      const Text("লোড হচ্ছে...", style: TextStyle(color: Colors.white70)),
+                      const Text("সুরক্ষিত সংযোগ স্থাপন হচ্ছে...", style: TextStyle(color: Colors.white70, fontSize: 13)),
                     ],
                   ),
                 ),
@@ -175,9 +192,103 @@ jobs:
             }
           }
 
-          // ২. লগইন স্ক্রিন
+          // ২. ইন-অ্যাপ আপডেট স্ক্রিন
+          class UpdateScreen extends StatelessWidget {
+            final String downloadUrl;
+            final String latestVersion;
+            const UpdateScreen({super.key, required this.downloadUrl, required this.latestVersion});
+
+            Future<void> _download() async {
+              final uri = Uri.parse(downloadUrl);
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+            }
+
+            @override
+            Widget build(BuildContext context) {
+              return Scaffold(
+                body: Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(colors: [Color(0xFF8B125D), Color(0xFF240428)], begin: Alignment.topCenter, end: Alignment.bottomCenter),
+                  ),
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF3A0638),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: Colors.amber, width: 3),
+                        boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 20)],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.system_update_rounded, size: 70, color: Colors.amber),
+                          const SizedBox(height: 14),
+                          const Text("নতুন আপডেট এসেছে!", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
+                          const SizedBox(height: 8),
+                          Text("ভার্সন v$latestVersion", style: const TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 14),
+                          const Text(
+                            "গেমটি সুষ্ঠু ও নিরাপদে খেলতে নতুন আপডেট আবশ্যক। এখনই আপডেট করে নতুন ফিচারের আনন্দ নিন।",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.white70, fontSize: 13),
+                          ),
+                          const SizedBox(height: 24),
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.greenAccent.shade700,
+                              foregroundColor: Colors.white,
+                              minimumSize: const Size(double.infinity, 50),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            ),
+                            icon: const Icon(Icons.download_rounded),
+                            label: const Text("এখনই আপডেট করুন", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                            onPressed: _download,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }
+          }
+
+          // ৩. মেইনটেন্যান্স স্ক্রিন
+          class MaintenanceScreen extends StatelessWidget {
+            final String message;
+            const MaintenanceScreen({super.key, required this.message});
+
+            @override
+            Widget build(BuildContext context) {
+              return Scaffold(
+                body: Container(
+                  padding: const EdgeInsets.all(30),
+                  color: const Color(0xFF1F0226),
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.construction_rounded, size: 80, color: Colors.amber),
+                        const SizedBox(height: 20),
+                        const Text("সার্ভার মেইনটেন্যান্স", style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white)),
+                        const SizedBox(height: 12),
+                        Text(message, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }
+          }
+
+          // ৪. লগইন স্ক্রিন
           class LoginScreen extends StatefulWidget {
-            const LoginScreen({super.key});
+            final Map<String, dynamic>? config;
+            const LoginScreen({super.key, this.config});
             @override
             State<LoginScreen> createState() => _LoginScreenState();
           }
@@ -220,14 +331,14 @@ jobs:
                 await prefs.setString('user_name', name);
 
                 if (mounted) {
-                  Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomeScreen(phone: phone)));
+                  Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomeScreen(phone: phone, config: widget.config)));
                 }
               } catch (_) {
                 final prefs = await SharedPreferences.getInstance();
                 await prefs.setString('user_phone', phone);
                 await prefs.setString('user_name', name);
                 if (mounted) {
-                  Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomeScreen(phone: phone)));
+                  Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomeScreen(phone: phone, config: widget.config)));
                 }
               } finally {
                 if (mounted) setState(() => _isLoading = false);
@@ -295,10 +406,11 @@ jobs:
             }
           }
 
-          // ৩. মূল ড্যাশবোর্ড
+          // ৫. মূল ড্যাশবোর্ড (Ludo Star স্টাইল + লাইভ নোটিশ)
           class HomeScreen extends StatefulWidget {
             final String phone;
-            const HomeScreen({super.key, required this.phone});
+            final Map<String, dynamic>? config;
+            const HomeScreen({super.key, required this.phone, this.config});
             @override
             State<HomeScreen> createState() => _HomeScreenState();
           }
@@ -311,9 +423,14 @@ jobs:
             final int _gamesWon = 169;
             final int _totalGames = 337;
 
+            late String _supportNumber;
+            late String _notice;
+
             @override
             void initState() {
               super.initState();
+              _supportNumber = widget.config?['support_number'] ?? '01774229222';
+              _notice = widget.config?['notice_text'] ?? 'জুমান লুডুতে স্বাগতম! নিয়মিত খেলুন এবং জিতে নিন পুরস্কার।';
               _loadData();
             }
 
@@ -351,22 +468,21 @@ jobs:
                   await launchUrl(uri, mode: LaunchMode.externalNonBrowserApplication);
                 }
               } catch (_) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("অ্যাপটি ওপেন করা সম্ভব হয়নি।")),
-                );
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("অ্যাপটি ওপেন করা সম্ভব হয়নি।")));
               }
             }
 
             void _openWhatsApp() {
-              final text = Uri.encodeComponent("হ্যালো Jumman Ludo Support, আমার সহায়তার প্রয়োজন। Player ID: $_playerId");
-              _launchExternalUrl("https://wa.me/$supportNumberWithCode?text=$text");
+              final codeNum = _supportNumber.startsWith('0') ? '88$_supportNumber' : _supportNumber;
+              final text = Uri.encodeComponent("হ্যালো Jumman Ludo Support, Player ID: $_playerId");
+              _launchExternalUrl("https://wa.me/$codeNum?text=$text");
             }
 
             void _openTelegram() {
-              _launchExternalUrl("https://t.me/+$supportNumberWithCode");
+              final codeNum = _supportNumber.startsWith('0') ? '88$_supportNumber' : _supportNumber;
+              _launchExternalUrl("https://t.me/+$codeNum");
             }
 
-            // কাস্টমার সাপোর্ট ডায়লগ (শুধু WhatsApp ও Telegram)
             void _showSupportDialog() {
               showDialog(
                 context: context,
@@ -383,19 +499,14 @@ jobs:
                   content: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text(
-                        "ডিপোজিট, উত্তোলন বা গেম সংক্রান্ত যেকোনো প্রয়োজনে সরাসরি যোগাযোগ করুন:",
-                        style: TextStyle(color: Colors.white70, fontSize: 13),
-                      ),
+                      const Text("ডিপোজিট, উত্তোলন বা যেকোনো প্রয়োজনে সরাসরি যোগাযোগ করুন:", style: TextStyle(color: Colors.white70, fontSize: 13)),
                       const SizedBox(height: 18),
-                      // ১. WhatsApp বাটন
                       ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF25D366),
                           foregroundColor: Colors.white,
                           minimumSize: const Size(double.infinity, 50),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          elevation: 4,
                         ),
                         icon: const Icon(Icons.chat, size: 24),
                         label: const Text("WhatsApp-এ চ্যাট করুন", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
@@ -405,14 +516,12 @@ jobs:
                         },
                       ),
                       const SizedBox(height: 14),
-                      // ২. Telegram বাটন
                       ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF0088CC),
                           foregroundColor: Colors.white,
                           minimumSize: const Size(double.infinity, 50),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          elevation: 4,
                         ),
                         icon: const Icon(Icons.send_rounded, size: 24),
                         label: const Text("Telegram-এ মেসেজ দিন", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
@@ -427,7 +536,6 @@ jobs:
               );
             }
 
-            // ছবি-১ অনুযায়ী প্রোফাইল ডায়লগ
             void _showLudoStarProfileModal() {
               showDialog(
                 context: context,
@@ -436,11 +544,7 @@ jobs:
                   insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
                   child: Container(
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF8B125D), Color(0xFF4A0A3A)],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ),
+                      gradient: const LinearGradient(colors: [Color(0xFF8B125D), Color(0xFF4A0A3A)], begin: Alignment.topCenter, end: Alignment.bottomCenter),
                       borderRadius: BorderRadius.circular(24),
                       border: Border.all(color: const Color(0xFFFFD700), width: 3),
                       boxShadow: const [BoxShadow(color: Colors.black87, blurRadius: 20)],
@@ -469,14 +573,8 @@ jobs:
                                   Container(
                                     width: 70,
                                     height: 70,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      border: Border.all(color: Colors.amber, width: 3),
-                                      color: Colors.amber.shade100,
-                                    ),
-                                    child: const Center(
-                                      child: Icon(Icons.person, size: 50, color: Color(0xFF4A0A3A)),
-                                    ),
+                                    decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.amber, width: 3), color: Colors.amber.shade100),
+                                    child: const Center(child: Icon(Icons.person, size: 50, color: Color(0xFF4A0A3A))),
                                   ),
                                   const SizedBox(width: 14),
                                   Column(
@@ -514,10 +612,7 @@ jobs:
                               const SizedBox(height: 16),
                               Container(
                                 padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF280222),
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
+                                decoration: BoxDecoration(color: const Color(0xFF280222), borderRadius: BorderRadius.circular(16)),
                                 child: Column(
                                   children: [
                                     _buildStatRow("Level", "$_level", "Signature", "EXPERT - III"),
@@ -599,7 +694,7 @@ jobs:
                         onTap: () async {
                           final prefs = await SharedPreferences.getInstance();
                           await prefs.clear();
-                          if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+                          if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => LoginScreen(config: widget.config)));
                         },
                       ),
                     ],
@@ -646,3 +741,592 @@ jobs:
             @override
             Widget build(BuildContext context) {
               return Scaffold(
+                body: SafeArea(
+                  child: Column(
+                    children: [
+                      // টপ বার
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        child: Row(
+                          children: [
+                            GestureDetector(
+                              onTap: _showLudoStarProfileModal,
+                              child: Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.amber, width: 2)),
+                                child: const CircleAvatar(radius: 18, backgroundColor: Colors.amberAccent, child: Icon(Icons.person, color: Color(0xFF4A0A3A))),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            GestureDetector(
+                              onTap: () async {
+                                await Navigator.push(context, MaterialPageRoute(builder: (_) => WalletScreen(phone: widget.phone, balance: _balance, supportNumber: _supportNumber)));
+                                _loadData();
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(color: const Color(0xFF1D0322), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.amber)),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.monetization_on, color: Colors.amber, size: 18),
+                                    const SizedBox(width: 4),
+                                    Text("৳ ${_balance.toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13)),
+                                    const SizedBox(width: 4),
+                                    const Icon(Icons.add_circle, color: Colors.greenAccent, size: 16),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const Spacer(),
+                            IconButton(icon: const Icon(Icons.headset_mic, color: Colors.greenAccent), tooltip: "কাস্টমার সাপোর্ট", onPressed: _showSupportDialog),
+                            IconButton(icon: const Icon(Icons.security, color: Colors.amber), tooltip: "অ্যাডমিন", onPressed: _promptAdminPin),
+                            IconButton(icon: const Icon(Icons.settings, color: Colors.white), tooltip: "সেটিংস", onPressed: _showSettingsDialog),
+                          ],
+                        ),
+                      ),
+                      // লাইভ নোটিশ বার
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        color: const Color(0xFF35042D),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.campaign, color: Colors.amber, size: 20),
+                            const SizedBox(width: 8),
+                            Expanded(child: Text(_notice, style: const TextStyle(color: Colors.white70, fontSize: 12), overflow: TextOverflow.ellipsis)),
+                          ],
+                        ),
+                      ),
+                      // গেম মোড কার্ডসমূহ
+                      Expanded(
+                        child: ListView(
+                          padding: const EdgeInsets.all(16),
+                          children: [
+                            _buildBigLudoCard(
+                              title: "2 Player",
+                              subtitle: "ক্লাসিক ব্যাটল (৳২০)",
+                              number: "2",
+                              badgeColor: Colors.pinkAccent,
+                              gradient: const [Color(0xFFFF8C00), Color(0xFFFF512F)],
+                              onTap: () => _enterMatch(20.0),
+                            ),
+                            const SizedBox(height: 16),
+                            _buildBigLudoCard(
+                              title: "4 Player",
+                              subtitle: "রয়্যাল ধামাকা (৳৫০)",
+                              number: "4",
+                              badgeColor: Colors.deepPurpleAccent,
+                              gradient: const [Color(0xFF8A2387), Color(0xFFE94057)],
+                              onTap: () => _enterMatch(50.0),
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildSmallModeCard(
+                                    title: "Private Table",
+                                    subtitle: "বন্ধুদের সাথে",
+                                    icon: Icons.vpn_key,
+                                    color: Colors.blueAccent,
+                                    onTap: () => _enterMatch(20.0),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _buildSmallModeCard(
+                                    title: "Team Up Online",
+                                    subtitle: "২ বনাম ২ ম্যাচ",
+                                    icon: Icons.groups,
+                                    color: Colors.deepOrangeAccent,
+                                    onTap: () => _enterMatch(100.0),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      // নিচের নেভিগেশন বার
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: const BoxDecoration(color: Color(0xFF1D0322), border: Border(top: BorderSide(color: Colors.white12))),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.account_balance_wallet, color: Colors.amber),
+                              onPressed: () async {
+                                await Navigator.push(context, MaterialPageRoute(builder: (_) => WalletScreen(phone: widget.phone, balance: _balance, supportNumber: _supportNumber)));
+                                _loadData();
+                              },
+                            ),
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.amber),
+                              child: const Icon(Icons.home, color: Color(0xFF2C0438), size: 28),
+                            ),
+                            IconButton(icon: const Icon(Icons.chat_bubble_outline, color: Colors.greenAccent), tooltip: "সাপোর্ট চ্যাট", onPressed: _showSupportDialog),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            Widget _buildBigLudoCard({required String title, required String subtitle, required String number, required Color badgeColor, required List<Color> gradient, required VoidCallback onTap}) {
+              return GestureDetector(
+                onTap: onTap,
+                child: Container(
+                  height: 125,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(colors: gradient),
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(color: Colors.amber, width: 2.5),
+                    boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 10, offset: Offset(0, 5))],
+                  ),
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        right: 16,
+                        top: 15,
+                        child: Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(shape: BoxShape.circle, color: badgeColor.withOpacity(0.4)),
+                          child: Center(child: Text(number, style: const TextStyle(fontSize: 55, fontWeight: FontWeight.w900, color: Colors.white))),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(18),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(title, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white)),
+                            const SizedBox(height: 4),
+                            Text(subtitle, style: const TextStyle(fontSize: 14, color: Colors.white70, fontWeight: FontWeight.w600)),
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                              decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(12)),
+                              child: const Text("খেলুন ▶", style: TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            Widget _buildSmallModeCard({required String title, required String subtitle, required IconData icon, required Color color, required VoidCallback onTap}) {
+              return GestureDetector(
+                onTap: onTap,
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(color: const Color(0xFF4A0A3A), borderRadius: BorderRadius.circular(16), border: Border.all(color: color.withOpacity(0.6), width: 1.5)),
+                  child: Column(
+                    children: [
+                      Icon(icon, size: 36, color: color),
+                      const SizedBox(height: 8),
+                      Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
+                      Text(subtitle, style: const TextStyle(fontSize: 11, color: Colors.white60)),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            void _enterMatch(double fee) {
+              if (_balance < fee) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("পর্যাপ্ত ব্যালেন্স নেই! ওয়ালেটে টাকা জমা দিন।")));
+                return;
+              }
+              Navigator.push(context, MaterialPageRoute(builder: (_) => LudoGameScreen(entryFee: fee)));
+            }
+          }
+
+          // ৬. ওয়ালেট স্ক্রিন (ডায়নামিক পার্সোনাল নম্বর সহ)
+          class WalletScreen extends StatefulWidget {
+            final String phone;
+            final double balance;
+            final String supportNumber;
+            const WalletScreen({super.key, required this.phone, required this.balance, required this.supportNumber});
+
+            @override
+            State<WalletScreen> createState() => _WalletScreenState();
+          }
+
+          class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderStateMixin {
+            late TabController _tabCtrl;
+            final _depAmt = TextEditingController();
+            final _senderPhone = TextEditingController();
+            final _trxId = TextEditingController();
+            String _depMethod = 'BKASH';
+
+            final _withAmt = TextEditingController();
+            final _withPhone = TextEditingController();
+            String _withMethod = 'BKASH';
+            bool _loading = false;
+
+            @override
+            void initState() {
+              super.initState();
+              _tabCtrl = TabController(length: 2, vsync: this);
+              _senderPhone.text = widget.phone;
+              _withPhone.text = widget.phone;
+            }
+
+            Future<void> _submitDep() async {
+              final amt = double.tryParse(_depAmt.text) ?? 0;
+              final trx = _trxId.text.trim();
+              if (amt < 10 || trx.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("সঠিক পরিমাণ ও TrxID দিন")));
+                return;
+              }
+              setState(() => _loading = true);
+              try {
+                final supabase = Supabase.instance.client;
+                final profile = await supabase.from('profiles').select().eq('phone_number', widget.phone).single();
+                await supabase.from('deposit_requests').insert({
+                  'user_id': profile['id'],
+                  'amount': amt,
+                  'payment_method': _depMethod,
+                  'sender_number': _senderPhone.text,
+                  'trx_id': trx,
+                  'status': 'PENDING',
+                });
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ডিপোজিট অনুরোধ পাঠানো হয়েছে!")));
+                  Navigator.pop(context);
+                }
+              } catch (_) {
+                if (mounted) Navigator.pop(context);
+              } finally {
+                if (mounted) setState(() => _loading = false);
+              }
+            }
+
+            Future<void> _submitWith() async {
+              final amt = double.tryParse(_withAmt.text) ?? 0;
+              if (amt < 50 || amt > widget.balance) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("সর্বনিম্ন ৫০ টাকা উত্তোলনযোগ্য")));
+                return;
+              }
+              setState(() => _loading = true);
+              try {
+                final supabase = Supabase.instance.client;
+                final profile = await supabase.from('profiles').select().eq('phone_number', widget.phone).single();
+                await supabase.from('withdrawal_requests').insert({
+                  'user_id': profile['id'],
+                  'amount': amt,
+                  'payment_method': _withMethod,
+                  'receiver_number': _withPhone.text,
+                  'status': 'PENDING',
+                });
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("উত্তোলন অনুরোধ সফল হয়েছে!")));
+                  Navigator.pop(context);
+                }
+              } catch (_) {
+                if (mounted) Navigator.pop(context);
+              } finally {
+                if (mounted) setState(() => _loading = false);
+              }
+            }
+
+            @override
+            Widget build(BuildContext context) {
+              return Scaffold(
+                appBar: AppBar(
+                  title: const Text("ওয়ালেট ও লেনদেন"),
+                  backgroundColor: const Color(0xFF4A0A3A),
+                  bottom: TabBar(
+                    controller: _tabCtrl,
+                    indicatorColor: Colors.amber,
+                    tabs: const [Tab(text: "টাকা জমা (Deposit)"), Tab(text: "উত্তোলন (Withdraw)")],
+                  ),
+                ),
+                body: TabBarView(
+                  controller: _tabCtrl,
+                  children: [
+                    SingleChildScrollView(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(color: const Color(0xFF35042D), borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.amber)),
+                            child: Column(
+                              children: [
+                                const Text("Send Money নম্বর (বিকাশ / নগদ পার্সোনাল):", style: TextStyle(color: Colors.white70)),
+                                const SizedBox(height: 4),
+                                Text(widget.supportNumber, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.amber)),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          DropdownButtonFormField<String>(
+                            value: _depMethod,
+                            dropdownColor: const Color(0xFF35042D),
+                            decoration: const InputDecoration(labelText: "পেমেন্ট মেথড", filled: true, fillColor: Color(0xFF35042D)),
+                            items: const [DropdownMenuItem(value: 'BKASH', child: Text("বিকাশ")), DropdownMenuItem(value: 'NAGAD', child: Text("নগদ"))],
+                            onChanged: (v) => setState(() => _depMethod = v!),
+                          ),
+                          const SizedBox(height: 10),
+                          TextField(controller: _depAmt, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "টাকার পরিমাণ", filled: true, fillColor: Color(0xFF35042D))),
+                          const SizedBox(height: 10),
+                          TextField(controller: _trxId, decoration: const InputDecoration(labelText: "Transaction ID (TrxID)", filled: true, fillColor: Color(0xFF35042D))),
+                          const SizedBox(height: 20),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.amber, minimumSize: const Size(double.infinity, 48)),
+                            onPressed: _loading ? null : _submitDep,
+                            child: const Text("জমা দিন", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SingleChildScrollView(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          TextField(controller: _withAmt, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "উত্তোলনের পরিমাণ", filled: true, fillColor: Color(0xFF35042D))),
+                          const SizedBox(height: 10),
+                          TextField(controller: _withPhone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: "বিকাশ/নগদ নম্বর", filled: true, fillColor: Color(0xFF35042D))),
+                          const SizedBox(height: 20),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.greenAccent, minimumSize: const Size(double.infinity, 48)),
+                            onPressed: _loading ? null : _submitWith,
+                            child: const Text("উত্তোলন করুন", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+          }
+
+          // ৭. অ্যাডমিন প্যানেল
+          class AdminScreen extends StatelessWidget {
+            const AdminScreen({super.key});
+
+            @override
+            Widget build(BuildContext context) {
+              final supabase = Supabase.instance.client;
+              return Scaffold(
+                appBar: AppBar(title: const Text("অ্যাডমিন ডিপোজিট কন্ট্রোল"), backgroundColor: const Color(0xFF4A0A3A)),
+                body: StreamBuilder<List<Map<String, dynamic>>>(
+                  stream: supabase.from('deposit_requests').stream(primaryKey: ['id']).eq('status', 'PENDING'),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                    final list = snapshot.data!;
+                    if (list.isEmpty) return const Center(child: Text("কোনো পেন্ডিং ট্রানজেকশন নেই!"));
+
+                    return ListView.builder(
+                      itemCount: list.length,
+                      itemBuilder: (context, i) {
+                        final req = list[i];
+                        return Card(
+                          color: const Color(0xFF35042D),
+                          margin: const EdgeInsets.all(8),
+                          child: ListTile(
+                            title: Text("৳${req['amount']} (${req['payment_method']})", style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold)),
+                            subtitle: Text("প্রেরক: ${req['sender_number']}\nTrxID: ${req['trx_id']}"),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.check_circle, color: Colors.green, size: 28),
+                                  onPressed: () async {
+                                    await supabase.rpc('approve_deposit_transaction', params: {
+                                      'p_req_id': req['id'],
+                                      'p_user_id': req['user_id'],
+                                      'p_amount': req['amount'],
+                                    });
+                                  },
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.cancel, color: Colors.red, size: 28),
+                                  onPressed: () async {
+                                    await supabase.from('deposit_requests').update({'status': 'REJECTED'}).eq('id', req['id']);
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              );
+            }
+          }
+
+          // ৮. লুডু বোর্ড ইঞ্জিন
+          class LudoGameScreen extends StatefulWidget {
+            final double entryFee;
+            const LudoGameScreen({super.key, required this.entryFee});
+            @override
+            State<LudoGameScreen> createState() => _LudoGameScreenState();
+          }
+
+          class _LudoGameScreenState extends State<LudoGameScreen> {
+            int _dice = 1;
+            bool _rolling = false;
+            int _turn = 0;
+            List<int> red = [-1, -1, -1, -1];
+            List<int> green = [-1, -1, -1, -1];
+
+            void _roll() {
+              if (_rolling) return;
+              setState(() => _rolling = true);
+              Future.delayed(const Duration(milliseconds: 400), () {
+                setState(() {
+                  _dice = Random().nextInt(6) + 1;
+                  _rolling = false;
+                  if (_turn == 0) {
+                    _move(red);
+                    if (_dice != 6) {
+                      _turn = 1;
+                      Future.delayed(const Duration(milliseconds: 1000), () => _roll());
+                    }
+                  } else {
+                    _move(green);
+                    if (_dice != 6) {
+                      _turn = 0;
+                    } else {
+                      Future.delayed(const Duration(milliseconds: 1000), () => _roll());
+                    }
+                  }
+                });
+              });
+            }
+
+            void _move(List<int> tokens) {
+              for (int i = 0; i < 4; i++) {
+                if (tokens[i] == -1 && _dice == 6) {
+                  tokens[i] = 0;
+                  break;
+                } else if (tokens[i] >= 0 && tokens[i] < 57) {
+                  tokens[i] = min(57, tokens[i] + _dice);
+                  break;
+                }
+              }
+            }
+
+            @override
+            Widget build(BuildContext context) {
+              return Scaffold(
+                appBar: AppBar(title: Text("ম্যাচ - ফি: ৳${widget.entryFee.toInt()}"), backgroundColor: const Color(0xFF4A0A3A)),
+                body: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Row(
+                        children: [
+                          const CircleAvatar(backgroundColor: Colors.green, radius: 14),
+                          const SizedBox(width: 8),
+                          Text("প্রতিপক্ষ (সবুজ) ${_turn == 1 ? '— ভাবছেন...' : ''}", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                        ],
+                      ),
+                    ),
+                    AspectRatio(
+                      aspectRatio: 1.0,
+                      child: Container(
+                        margin: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.amber, width: 3)),
+                        child: CustomPaint(painter: LudoBoardPainter(redTokens: red, greenTokens: green)),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      color: const Color(0xFF35042D),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              const CircleAvatar(backgroundColor: Colors.red, radius: 14),
+                              const SizedBox(width: 8),
+                              Text("আপনার চাল (লাল) ${_turn == 0 ? '— চালুন!' : ''}", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                            ],
+                          ),
+                          GestureDetector(
+                            onTap: (_turn == 0 && !_rolling) ? _roll : null,
+                            child: Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.red, width: 3)),
+                              child: Center(
+                                child: _rolling
+                                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.red))
+                                    : Text("$_dice", style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black)),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+          }
+
+          class LudoBoardPainter extends CustomPainter {
+            final List<int> redTokens;
+            final List<int> greenTokens;
+            LudoBoardPainter({required this.redTokens, required this.greenTokens});
+
+            @override
+            void paint(Canvas canvas, Size size) {
+              final step = size.width / 15;
+              final paint = Paint()..style = PaintingStyle.fill;
+
+              paint.color = Colors.red.shade600;
+              canvas.drawRect(Rect.fromLTWH(0, 0, step * 6, step * 6), paint);
+              paint.color = Colors.green.shade600;
+              canvas.drawRect(Rect.fromLTWH(step * 9, 0, step * 6, step * 6), paint);
+              paint.color = Colors.blue.shade600;
+              canvas.drawRect(Rect.fromLTWH(0, step * 9, step * 6, step * 6), paint);
+              paint.color = Colors.amber.shade600;
+              canvas.drawRect(Rect.fromLTWH(step * 9, step * 9, step * 6, step * 6), paint);
+
+              final border = Paint()..style = PaintingStyle.stroke..color = Colors.black26..strokeWidth = 1;
+              for (int r = 0; r < 15; r++) {
+                for (int c = 0; c < 15; c++) {
+                  canvas.drawRect(Rect.fromLTWH(c * step, r * step, step, step), border);
+                }
+              }
+
+              final token = Paint()..style = PaintingStyle.fill;
+              token.color = Colors.red;
+              for (var t in redTokens) {
+                if (t >= 0) canvas.drawCircle(Offset(step * (1.5 + (t % 12)), step * 7.5), step * 0.4, token);
+              }
+              token.color = Colors.green;
+              for (var t in greenTokens) {
+                if (t >= 0) canvas.drawCircle(Offset(step * (13.5 - (t % 12)), step * 7.5), step * 0.4, token);
+              }
+            }
+
+            @override
+            bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+          }
+          EOF
+
+      - name: Build Master Release APK
+        run: flutter build apk --release
+
+      - name: Upload Master APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: jumman-ludo-master-app
+          path: build/app/outputs/flutter-apk/app-release.apk

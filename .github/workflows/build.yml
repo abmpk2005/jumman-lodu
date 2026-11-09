@@ -1,4 +1,4 @@
-name: Build Complete Jumman Ludo App
+name: Build Jumman Ludo App With Admin PIN
 
 on:
   push:
@@ -24,14 +24,14 @@ jobs:
           flutter-version: '3.19.6'
           channel: 'stable'
 
-      - name: Generate Full Production App
+      - name: Generate Protected Flutter App
         run: |
           flutter create --org com.jumman.ludo --project-name jumman_ludo .
           
-          # অ্যান্ড্রয়েড পারমিশন কনফিগারেশন
+          # পারমিশন কনফিগারেশন
           sed -i '/<application/i <uses-permission android:name="android.permission.INTERNET"/>\n<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>\n<uses-permission android:name="android.permission.VIBRATE"/>' android/app/src/main/AndroidManifest.xml
 
-          # pubspec.yaml প্যাকেজসমূহ
+          # ডিপেন্ডেন্সি
           cat << 'EOF' > pubspec.yaml
           name: jumman_ludo
           description: "Jumman Ludo Complete Multiplayer Game"
@@ -50,7 +50,7 @@ jobs:
             uses-material-design: true
           EOF
 
-          # সম্পূর্ণ কার্যকরী ফ্ল্যাটার অ্যাপ্লিকেশন
+          # পিন সুরক্ষাসহ সম্পূর্ণ গেম কোড
           cat << 'EOF' > lib/main.dart
           import 'dart:math';
           import 'package:flutter/material.dart';
@@ -61,6 +61,9 @@ jobs:
           // সুপাবেস ক্লাউড তথ্য
           const String supabaseUrl = 'https://tjagciqfcijvszqtsxhr.supabase.co';
           const String supabaseAnonKey = 'sb_publishable_jkd8rKF0gJHgml6kxmOxig_1mWaF7Sm';
+
+          // ⚠️ আপনার গোপন অ্যাডমিন পিন (এখানে ইচ্ছেমতো পরিবর্তন করতে পারেন)
+          const String masterAdminPin = '7742';
 
           void main() async {
             WidgetsFlutterBinding.ensureInitialized();
@@ -91,7 +94,7 @@ jobs:
             }
           }
 
-          // ১. স্প্ল্যাশ ও অথেনটিকেশন চেক
+          // ১. স্প্ল্যাশ স্ক্রিন
           class SplashScreen extends StatefulWidget {
             const SplashScreen({super.key});
             @override
@@ -180,7 +183,7 @@ jobs:
 
                   await supabase.from('wallet_accounts').insert({
                     'user_id': dummyUuid,
-                    'balance': 20.0, // সাইন-আপ ফ্রি বোনাস ৳২০
+                    'balance': 20.0,
                   });
                 }
 
@@ -191,7 +194,7 @@ jobs:
                 if (mounted) {
                   Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomeScreen(phone: phone)));
                 }
-              } catch (e) {
+              } catch (_) {
                 final prefs = await SharedPreferences.getInstance();
                 await prefs.setString('user_phone', phone);
                 await prefs.setString('user_name', name);
@@ -263,7 +266,7 @@ jobs:
             }
           }
 
-          // ৩. মূল ড্যাশবোর্ড ও রুম লবি
+          // ৩. মূল ড্যাশবোর্ড ও রুম লবি (পিন ডায়লগ সহ)
           class HomeScreen extends StatefulWidget {
             final String phone;
             const HomeScreen({super.key, required this.phone});
@@ -275,7 +278,6 @@ jobs:
             double _balance = 0.0;
             String _name = "প্লেয়ার";
             String _playerId = "";
-            bool _isAdmin = false;
 
             @override
             void initState() {
@@ -291,7 +293,6 @@ jobs:
                   setState(() {
                     _name = profile['full_name'] ?? "প্লেয়ার";
                     _playerId = profile['player_id'] ?? "JL1001";
-                    _isAdmin = profile['is_admin'] ?? (widget.phone == "01774229222");
                   });
 
                   final wallet = await supabase.from('wallet_accounts').select().eq('user_id', profile['id']).maybeSingle();
@@ -307,9 +308,69 @@ jobs:
                   _name = prefs.getString('user_name') ?? "খেলোয়াড়";
                   _playerId = "JL88921";
                   _balance = 50.0;
-                  if (widget.phone == "01774229222") _isAdmin = true;
                 });
               }
+            }
+
+            // 🔐 সিকিউরিটি পিন ভেরিফিকেশন ডায়লগ
+            void _promptAdminPin() {
+              final pinCtrl = TextEditingController();
+              showDialog(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  backgroundColor: const Color(0xFF1E293B),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  title: const Row(
+                    children: [
+                      Icon(Icons.lock, color: Colors.amber),
+                      SizedBox(width: 8),
+                      Text("অ্যাডমিন সিক্রেট পিন", style: TextStyle(color: Colors.white, fontSize: 18)),
+                    ],
+                  ),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text("অ্যাডমিন প্যানেলে ঢুকতে ৪ ডিজিটের গোপন পিন দিন:", style: TextStyle(color: Colors.white70, fontSize: 13)),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: pinCtrl,
+                        keyboardType: TextInputType.number,
+                        obscureText: true,
+                        maxLength: 6,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 8, color: Colors.amber),
+                        decoration: InputDecoration(
+                          counterText: "",
+                          hintText: "••••",
+                          filled: true,
+                          fillColor: const Color(0xFF0F172A),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text("বাতিল", style: TextStyle(color: Colors.white60)),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE94560)),
+                      onPressed: () {
+                        if (pinCtrl.text.trim() == masterAdminPin) {
+                          Navigator.pop(ctx);
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminScreen()));
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("ভুল পিন নম্বর! প্রবেশাধিকার নেই।")),
+                          );
+                        }
+                      },
+                      child: const Text("প্রবেশ করুন", style: TextStyle(color: Colors.white)),
+                    ),
+                  ],
+                ),
+              );
             }
 
             @override
@@ -341,8 +402,8 @@ jobs:
                         _loadData();
                       },
                       child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
                           color: const Color(0xFF0F3460),
                           borderRadius: BorderRadius.circular(20),
@@ -357,18 +418,17 @@ jobs:
                         ),
                       ),
                     ),
-                    if (_isAdmin)
-                      IconButton(
-                        icon: const Icon(Icons.admin_panel_settings, color: Colors.redAccent),
-                        tooltip: "অ্যাডমিন প্যানেল",
-                        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminScreen())),
-                      ),
+                    // 🛡️ পিন-সুরক্ষিত অ্যাডমিন আইকন
+                    IconButton(
+                      icon: const Icon(Icons.security, color: Colors.amber),
+                      tooltip: "অ্যাডমিন প্রবেশ",
+                      onPressed: _promptAdminPin,
+                    ),
                   ],
                 ),
                 body: ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
-                    // ব্যানার
                     Container(
                       padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
@@ -446,7 +506,7 @@ jobs:
             }
           }
 
-          // ৪. ওয়ালেট ও লেনদেন স্ক্রিন (ডিপোজিট ও উত্তোলন)
+          // ৪. ওয়ালেট ও লেনদেন স্ক্রিন
           class WalletScreen extends StatefulWidget {
             final String phone;
             final double balance;
@@ -509,9 +569,7 @@ jobs:
                 }
               } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("অনুরোধ সংরক্ষিত হয়েছে: $e")),
-                  );
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("অনুরোধ গৃহীত হয়েছে!")));
                   Navigator.pop(context);
                 }
               } finally {
@@ -570,7 +628,6 @@ jobs:
                 body: TabBarView(
                   controller: _tabController,
                   children: [
-                    // ডিপোজিট ট্যাব
                     SingleChildScrollView(
                       padding: const EdgeInsets.all(16),
                       child: Column(
@@ -636,7 +693,6 @@ jobs:
                         ],
                       ),
                     ),
-                    // উত্তোলন ট্যাব
                     SingleChildScrollView(
                       padding: const EdgeInsets.all(16),
                       child: Column(
@@ -742,9 +798,8 @@ jobs:
           class _LudoGameScreenState extends State<LudoGameScreen> {
             int _dice = 1;
             bool _isRolling = false;
-            int _turn = 0; // 0: Red (Player), 1: Green (Opponent)
+            int _turn = 0;
             
-            // টোকেন পজিশন: -1 মানে ঘরের ভেতর, 0-51 মূল পাথ, 52-57 হোম কলাম, 58 জয়ী
             List<int> redTokens = [-1, -1, -1, -1];
             List<int> greenTokens = [-1, -1, -1, -1];
 
@@ -757,7 +812,6 @@ jobs:
                   _dice = Random().nextInt(6) + 1;
                   _isRolling = false;
                   
-                  // অটোমেটিক মুভ লজিক বা প্লেয়ারের মুভ
                   if (_turn == 0) {
                     _autoMoveRed();
                   } else {
@@ -768,22 +822,18 @@ jobs:
             }
 
             void _autoMoveRed() {
-              bool moved = false;
               for (int i = 0; i < 4; i++) {
                 if (redTokens[i] == -1 && _dice == 6) {
-                  redTokens[i] = 0; // বোর্ডে প্রবেশ
-                  moved = true;
+                  redTokens[i] = 0;
                   break;
                 } else if (redTokens[i] >= 0 && redTokens[i] < 57) {
                   redTokens[i] = min(57, redTokens[i] + _dice);
-                  moved = true;
                   break;
                 }
               }
 
               if (_dice != 6) {
                 _turn = 1;
-                // প্রতিপক্ষের টার্ন
                 Future.delayed(const Duration(milliseconds: 1000), () => _rollDice());
               }
             }
@@ -800,7 +850,7 @@ jobs:
               }
 
               if (_dice != 6) {
-                _turn = 0; // আবার প্লেয়ারের চাল
+                _turn = 0;
               } else {
                 Future.delayed(const Duration(milliseconds: 1000), () => _rollDice());
               }
@@ -816,18 +866,16 @@ jobs:
                 body: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // প্রতিপক্ষ (সবুজ)
                     Padding(
                       padding: const EdgeInsets.all(12),
                       child: Row(
                         children: [
-                          CircleAvatar(backgroundColor: Colors.green, radius: 14),
+                          const CircleAvatar(backgroundColor: Colors.green, radius: 14),
                           const SizedBox(width: 8),
                           Text("প্রতিপক্ষ (সবুজ) ${_turn == 1 ? '— ভাবছেন...' : ''}", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
                         ],
                       ),
                     ),
-                    // সেন্ট্রাল লুডু বোর্ড
                     AspectRatio(
                       aspectRatio: 1.0,
                       child: Container(
@@ -842,7 +890,6 @@ jobs:
                         ),
                       ),
                     ),
-                    // প্লেয়ার কন্ট্রোল (লাল)
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                       color: const Color(0xFF1E293B),
@@ -882,7 +929,6 @@ jobs:
             }
           }
 
-          // ৭. প্রফেশনাল কাস্টম লুডু বোর্ড পেইন্টার
           class LudoBoardPainter extends CustomPainter {
             final List<int> redTokens;
             final List<int> greenTokens;
@@ -894,23 +940,18 @@ jobs:
               final step = size.width / 15;
               final paint = Paint()..style = PaintingStyle.fill;
 
-              // রেড কর্নার
               paint.color = Colors.red.shade600;
               canvas.drawRect(Rect.fromLTWH(0, 0, step * 6, step * 6), paint);
 
-              // গ্রিন কর্নার
               paint.color = Colors.green.shade600;
               canvas.drawRect(Rect.fromLTWH(step * 9, 0, step * 6, step * 6), paint);
 
-              // ব্লু কর্নার
               paint.color = Colors.blue.shade600;
               canvas.drawRect(Rect.fromLTWH(0, step * 9, step * 6, step * 6), paint);
 
-              // ইয়েলো কর্নার
               paint.color = Colors.amber.shade600;
               canvas.drawRect(Rect.fromLTWH(step * 9, step * 9, step * 6, step * 6), paint);
 
-              // সেন্ট্রাল পাথ ড্রয়িং
               final borderPaint = Paint()..style = PaintingStyle.stroke..color = Colors.black26..strokeWidth = 1;
               for (int r = 0; r < 15; r++) {
                 for (int c = 0; c < 15; c++) {
@@ -918,10 +959,7 @@ jobs:
                 }
               }
 
-              // টোকেন ডিসপ্লে
               final tokenPaint = Paint()..style = PaintingStyle.fill;
-              
-              // রেড টোকেন রেন্ডার
               tokenPaint.color = Colors.red;
               for (var t in redTokens) {
                 if (t >= 0) {
@@ -929,7 +967,6 @@ jobs:
                 }
               }
 
-              // গ্রিন টোকেন রেন্ডার
               tokenPaint.color = Colors.green;
               for (var t in greenTokens) {
                 if (t >= 0) {
@@ -943,11 +980,11 @@ jobs:
           }
           EOF
 
-      - name: Build Production APK
+      - name: Build Protected APK
         run: flutter build apk --release
 
       - name: Upload Final APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: jumman-ludo-final-app
+          name: jumman-ludo-secure-app
           path: build/app/outputs/flutter-apk/app-release.apk

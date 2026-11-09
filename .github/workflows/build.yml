@@ -1,0 +1,96 @@
+name: Build Jumman Ludo APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.6'
+          channel: 'stable'
+
+      - name: Generate Flutter App Base
+        run: |
+          flutter create --org com.jumman.ludo --project-name jumman_ludo .
+          
+          # ১. ইন্টারনেট পারমিশন যুক্ত করা
+          sed -i '/<application/i <uses-permission android:name="android.permission.INTERNET"/>\n<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>' android/app/src/main/AndroidManifest.xml
+
+          # ২. ডিপেন্ডেন্সি কনফিগারেশন (pubspec.yaml)
+          cat << 'EOF' > pubspec.yaml
+          name: jumman_ludo
+          description: "Jumman Ludo Multiplayer Game"
+          publish_to: "none"
+          version: 1.0.0+1
+          environment:
+            sdk: '>=3.0.0 <4.0.0'
+          dependencies:
+            flutter:
+              sdk: flutter
+            supabase_flutter: ^2.5.0
+            google_fonts: ^6.1.0
+          flutter:
+            uses-material-design: true
+          EOF
+
+          # ৩. আপনার সুপাবেস কানেকশনসহ সম্পূর্ণ গেম কোড (lib/main.dart)
+          cat << 'EOF' > lib/main.dart
+          import 'dart:math';
+          import 'package:flutter/material.dart';
+          import 'package:google_fonts/google_fonts.dart';
+          import 'package:supabase_flutter/supabase_flutter.dart';
+
+          // আপনার সক্রিয় সুপাবেস ক্রেডেনশিয়াল
+          const String supabaseUrl = 'https://tjagciqfcijvszqtsxhr.supabase.co';
+          const String supabaseAnonKey = 'sb_publishable_jkd8rKF0gJHgml6kxmOxig_1mWaF7Sm';
+
+          Future<void> main() async {
+            WidgetsFlutterBinding.ensureInitialized();
+            try {
+              await Supabase.initialize(
+                url: supabaseUrl,
+                anonKey: supabaseAnonKey,
+              );
+            } catch (e) {
+              debugPrint("Supabase Init Error: \$e");
+            }
+            runApp(const JummanLudoApp());
+          }
+
+          class JummanLudoApp extends StatelessWidget {
+            const JummanLudoApp({super.key});
+
+            @override
+            Widget build(BuildContext context) {
+              return MaterialApp(
+                title: 'jumman Ludo',
+                debugShowCheckedModeBanner: false,
+                theme: ThemeData(
+                  brightness: Brightness.dark,
+                  textTheme: GoogleFonts.hindSiliguriTextTheme(ThemeData.dark().textTheme),
+                  scaffoldBackgroundColor: const Color(0xFF0F172A),
+                ),
+                home: const HomeScreen(),
+              );
+            }
+          }
+
+          class HomeScreen extends StatefulWidget {
+            const HomeScreen({super.key});
+            @override
+            State<HomeScreen> createState() => _HomeScreenState();

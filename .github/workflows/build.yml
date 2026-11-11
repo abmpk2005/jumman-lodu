@@ -1,4 +1,4 @@
-name: Build Real Authentic Ludo Star Game
+name: Build Ludo Star 3D Masterpiece
 
 on:
   push:
@@ -24,17 +24,17 @@ jobs:
           flutter-version: '3.19.6'
           channel: 'stable'
 
-      - name: Generate Authentic Ludo Game
+      - name: Generate Premium 3D Ludo Game
         run: |
           flutter create --org com.jumman.ludo --project-name jumman_ludo .
           
-          # ১. অ্যান্ড্রয়েড পারমিশন
+          # ১. অ্যান্ড্রয়েড পারমিশন কনফিগারেশন
           sed -i '/<application/i <uses-permission android:name="android.permission.INTERNET"/>\n<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>\n<uses-permission android:name="android.permission.VIBRATE"/>\n<queries>\n<intent><action android:name="android.intent.action.VIEW"/><data android:scheme="https"/></intent>\n<package android:name="com.whatsapp"/>\n<package android:name="org.telegram.messenger"/>\n</queries>' android/app/src/main/AndroidManifest.xml
 
-          # ২. ডিপেন্ডেন্সি
+          # ২. ডিপেন্ডেন্সি কনফিগারেশন
           cat << 'EOF' > pubspec.yaml
           name: jumman_ludo
-          description: "Jumman Ludo Authentic Professional Game"
+          description: "Jumman Ludo 3D Master Edition"
           publish_to: "none"
           version: 1.0.0+1
           environment:
@@ -51,7 +51,7 @@ jobs:
             uses-material-design: true
           EOF
 
-          # ৩. সম্পূর্ণ প্রফেশনাল লুডু গেম কোড (main.dart)
+          # ৩. সম্পূর্ণ 3D লুডু ইঞ্জিন ও UI কোড (main.dart)
           cat << 'EOF' > lib/main.dart
           import 'dart:math';
           import 'package:flutter/material.dart';
@@ -84,7 +84,7 @@ jobs:
                 theme: ThemeData(
                   brightness: Brightness.dark,
                   textTheme: GoogleFonts.hindSiliguriTextTheme(ThemeData.dark().textTheme),
-                  scaffoldBackgroundColor: const Color(0xFF24022B),
+                  scaffoldBackgroundColor: const Color(0xFF1D0322),
                 ),
                 home: const SplashScreen(),
               );
@@ -156,7 +156,7 @@ jobs:
                         shaderCallback: (bounds) => const LinearGradient(colors: [Color(0xFFFFDF00), Color(0xFFFF4500)]).createShader(bounds),
                         child: const Text("JUMMAN LUDO", style: TextStyle(fontSize: 34, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 2)),
                       ),
-                      const Text("★ OFFICIAL MULTIPLAYER EDITION ★", style: TextStyle(color: Colors.amberAccent, letterSpacing: 2, fontWeight: FontWeight.bold, fontSize: 13)),
+                      const Text("★ 3D LUDO STAR EDITION ★", style: TextStyle(color: Colors.amberAccent, letterSpacing: 2, fontWeight: FontWeight.bold, fontSize: 13)),
                       const SizedBox(height: 40),
                       const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 60),
@@ -345,7 +345,7 @@ jobs:
             }
           }
 
-          // ৩. প্রিমিয়াম হোম লবি (সম্পূর্ণ স্ক্রিন ভর্তি ফিচার)
+          // ৩. প্রিমিয়াম হোম ড্যাশবোর্ড
           class HomeScreen extends StatefulWidget {
             final String phone;
             final String userId;
@@ -642,7 +642,7 @@ jobs:
                 body: SafeArea(
                   child: Column(
                     children: [
-                      // ১. টপ বার
+                      // টপ বার
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         child: Row(
@@ -682,7 +682,7 @@ jobs:
                           ],
                         ),
                       ),
-                      // ২. লাইভ নোটিশ বার
+                      // লাইভ নোটিশ
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -695,12 +695,11 @@ jobs:
                           ],
                         ),
                       ),
-                      // ৩. সম্পূর্ণ হোম স্ক্রিন লিস্ট (কোনো ফাঁকা থাকবে না)
+                      // মূল লবি লিস্ট
                       Expanded(
                         child: ListView(
                           padding: const EdgeInsets.all(14),
                           children: [
-                            // ডেইলি স্পিন ব্যানার
                             Container(
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
@@ -717,7 +716,7 @@ jobs:
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text("দৈনিক রিওয়ার্ড ও বোনাস!", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-                                        Text("প্রতিদিন লগইন করে ফ্রি কয়েন সংগ্রহ করুন", style: TextStyle(fontSize: 12, color: Colors.white70)),
+                                        Text("প্রতিদিন ফ্রি কয়েন ক্লেইম করুন", style: TextStyle(fontSize: 12, color: Colors.white70)),
                                       ],
                                     ),
                                   ),
@@ -732,13 +731,10 @@ jobs:
                               ),
                             ),
                             const SizedBox(height: 14),
-                            // বড় কার্ড ১: ২ প্লেয়ার
                             _buildBigModeCard("2 Player Battle", "ক্লাসিক ব্যাটল (৳২০)", "2", const [Color(0xFFFF8C00), Color(0xFFFF512F)], 20.0),
                             const SizedBox(height: 14),
-                            // বড় কার্ড ২: ৪ প্লেয়ার
                             _buildBigModeCard("4 Player Royal", "রয়্যাল ধামাকা (৳৫০)", "4", const [Color(0xFF8A2387), Color(0xFFE94057)], 50.0),
                             const SizedBox(height: 14),
-                            // ছোট মোড গ্রিড (প্রাইভেট ও পাস-অ্যান্ড-প্লে)
                             Row(
                               children: [
                                 Expanded(
@@ -762,24 +758,10 @@ jobs:
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 14),
-                            // টুর্নামেন্ট ও প্রাইজ পুল ইনফো
-                            Container(
-                              padding: const EdgeInsets.all(14),
-                              decoration: BoxDecoration(color: const Color(0xFF35042D), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white12)),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                                children: [
-                                  _buildFooterStat(Icons.military_tech, "চ্যাম্পিয়নশিপ", "৳১০,০০০ পুল"),
-                                  _buildFooterStat(Icons.people, "লাইভ প্লেয়ার", "১২৪ জন"),
-                                  _buildFooterStat(Icons.shield, "ফেয়ার প্লে", "১০০% নিরাপদ"),
-                                ],
-                              ),
-                            ),
                           ],
                         ),
                       ),
-                      // ৪. স্থায়ী গেমিং বটম নেভিগেশন বার
+                      // নিচের নেভিগেশন বার
                       Container(
                         padding: const EdgeInsets.symmetric(vertical: 6),
                         decoration: const BoxDecoration(color: Color(0xFF19011F), border: Border(top: BorderSide(color: Colors.white12))),
@@ -867,23 +849,12 @@ jobs:
               );
             }
 
-            Widget _buildFooterStat(IconData icon, String t1, String t2) {
-              return Column(
-                children: [
-                  Icon(icon, color: Colors.amber, size: 22),
-                  const SizedBox(height: 4),
-                  Text(t1, style: const TextStyle(fontSize: 11, color: Colors.white70)),
-                  Text(t2, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.greenAccent)),
-                ],
-              );
-            }
-
             void _startMatch(double fee) async {
               if (fee > 0 && _balance < fee) {
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("পর্যাপ্ত ব্যালেন্স নেই! দয়া করে ওয়ালেটে টাকা জমা দিন।")));
                 return;
               }
-              await Navigator.push(context, MaterialPageRoute(builder: (_) => LudoBoardScreen(entryFee: fee, userId: widget.userId, phone: widget.phone)));
+              await Navigator.push(context, MaterialPageRoute(builder: (_) => LudoStar3DScreen(entryFee: fee, userId: widget.userId, phone: widget.phone, playerName: _name)));
               _loadUserData();
             }
           }
@@ -1044,7 +1015,7 @@ jobs:
             }
           }
 
-          // ৫. অ্যাডমিন প্যানেল (৩-ট্যাব)
+          // ৫. অ্যাডমিন প্যানেল
           class AdminScreen extends StatefulWidget {
             const AdminScreen({super.key});
             @override
@@ -1168,7 +1139,7 @@ jobs:
                         );
                       },
                     ),
-                    // খেলোয়াড় তালিকা
+                    // খেলোয়াড়
                     StreamBuilder<List<Map<String, dynamic>>>(
                       stream: supabase.from('profiles').stream(primaryKey: ['id']),
                       builder: (context, snapshot) {
@@ -1197,34 +1168,50 @@ jobs:
             }
           }
 
-          // ৬. আসল অথেনটিক প্রফেশনাল লুডু বোর্ড ও ইঞ্জিন
-          class LudoBoardScreen extends StatefulWidget {
+          // ৬. ছবি ২-এর মতো আসল প্রিমিয়াম 3D Ludo Star গেম স্ক্রিন
+          class LudoStar3DScreen extends StatefulWidget {
             final double entryFee;
             final String userId;
             final String phone;
-            const LudoBoardScreen({super.key, required this.entryFee, required this.userId, required this.phone});
+            final String playerName;
+            const LudoStar3DScreen({super.key, required this.entryFee, required this.userId, required this.phone, required this.playerName});
 
             @override
-            State<LudoBoardScreen> createState() => _LudoBoardScreenState();
+            State<LudoStar3DScreen> createState() => _LudoStar3DScreenState();
           }
 
-          class _LudoBoardScreenState extends State<LudoBoardScreen> {
+          class _LudoStar3DScreenState extends State<LudoStar3DScreen> with SingleTickerProviderStateMixin {
             int _dice = 1;
             bool _rolling = false;
-            int _turn = 0; // 0: Red (Player), 1: Green (Opponent)
+            int _turn = 0; // 0: Yellow (Player - Bottom Left), 1: Red (Opponent - Top Right)
+            int _turnTime = 15;
+            int _consecutiveSix = 0;
 
             // ৪টি করে ঘুঁটির পজিশন:
-            // -1 মানে ঘরের পকেটে আছে
-            // 0 থেকে 51 হলো সাধারণ বাইরের রাস্তা
-            // 52 থেকে 56 হলো হোম কলাম
-            // 57 হলো বিজয়ী ঘর
+            // -1 = বেসের ঘরের পকেটে আছে
+            // 0..50 = বাইরের কমন ৫২টি রাস্তা
+            // 51..55 = নিজস্ব রঙের হোম কলাম
+            // 56 = সেন্ট্রাল বিজয় গোল (Won!)
+            List<int> yellowPawns = [-1, -1, -1, -1];
             List<int> redPawns = [-1, -1, -1, -1];
-            List<int> greenPawns = [-1, -1, -1, -1];
+
+            // সেফ জোন ইনডেক্স (৮টি আন্তর্জাতিক নিরাপদ স্টার ঘর)
+            final Set<int> safePositions = {0, 8, 13, 21, 26, 34, 39, 47};
+
+            late AnimationController _arrowAnimCtrl;
+            String? _chatBubble;
 
             @override
             void initState() {
               super.initState();
               _deductEntryFee();
+              _arrowAnimCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 600))..repeat(reverse: true);
+            }
+
+            @override
+            void dispose() {
+              _arrowAnimCtrl.dispose();
+              super.dispose();
             }
 
             Future<void> _deductEntryFee() async {
@@ -1237,25 +1224,52 @@ jobs:
               } catch (_) {}
             }
 
+            Future<void> _recordWin(bool playerWon) async {
+              try {
+                final supabase = Supabase.instance.client;
+                if (playerWon) {
+                  final wallet = await supabase.from('wallet_accounts').select().eq('user_id', widget.userId).single();
+                  double cur = double.parse((wallet['balance'] ?? 0.0).toString());
+                  double prize = widget.entryFee * 1.8;
+                  await supabase.from('wallet_accounts').update({'balance': cur + prize}).eq('user_id', widget.userId);
+                  
+                  final profile = await supabase.from('profiles').select().eq('id', widget.userId).single();
+                  int won = (profile['matches_won'] ?? 0) + 1;
+                  int tot = (profile['total_matches'] ?? 0) + 1;
+                  await supabase.from('profiles').update({'matches_won': won, 'total_matches': tot}).eq('id', widget.userId);
+                }
+              } catch (_) {}
+            }
+
             void _rollDice() {
               if (_rolling) return;
               setState(() => _rolling = true);
 
-              Future.delayed(const Duration(milliseconds: 500), () {
+              Future.delayed(const Duration(milliseconds: 550), () {
                 setState(() {
                   _dice = Random().nextInt(6) + 1;
                   _rolling = false;
 
-                  if (_turn == 0) {
-                    _movePawn(redPawns);
-                    if (_dice != 6) {
-                      _turn = 1;
-                      Future.delayed(const Duration(milliseconds: 1000), () => _rollDice());
+                  if (_dice == 6) {
+                    _consecutiveSix++;
+                    if (_consecutiveSix >= 3) {
+                      _consecutiveSix = 0;
+                      _passTurn();
+                      return;
                     }
                   } else {
-                    _movePawn(greenPawns);
-                    if (_dice != 6) {
-                      _turn = 0;
+                    _consecutiveSix = 0;
+                  }
+
+                  if (_turn == 0) {
+                    bool moved = _autoMovePawn(yellowPawns, true);
+                    if (!moved || _dice != 6) {
+                      _passTurn();
+                    }
+                  } else {
+                    bool moved = _autoMovePawn(redPawns, false);
+                    if (!moved || _dice != 6) {
+                      _passTurn();
                     } else {
                       Future.delayed(const Duration(milliseconds: 1000), () => _rollDice());
                     }
@@ -1264,124 +1278,303 @@ jobs:
               });
             }
 
-            void _movePawn(List<int> pawns) {
-              for (int i = 0; i < 4; i++) {
-                if (pawns[i] == -1 && _dice == 6) {
-                  pawns[i] = 0; // ঘর থেকে বের হওয়া
-                  break;
-                } else if (pawns[i] >= 0 && pawns[i] < 57) {
-                  pawns[i] = min(57, pawns[i] + _dice);
-                  break;
+            bool _autoMovePawn(List<int> pawns, bool isYellow) {
+              // ১. ঘরে থাকা ঘুঁটি ৬ উঠলে বের হবে
+              if (_dice == 6) {
+                for (int i = 0; i < 4; i++) {
+                  if (pawns[i] == -1) {
+                    pawns[i] = 0;
+                    _checkCapture(pawns, i, isYellow);
+                    return true;
+                  }
                 }
               }
+
+              // ২. রানিং ঘুঁটি সামনে এগোনো
+              for (int i = 0; i < 4; i++) {
+                if (pawns[i] >= 0 && pawns[i] + _dice <= 56) {
+                  pawns[i] += _dice;
+                  _checkCapture(pawns, i, isYellow);
+                  
+                  // জয়ী চেক (৪টি ঘুঁটি গোল হলে)
+                  if (pawns.every((p) => p == 56)) {
+                    _showVictoryDialog(isYellow);
+                  }
+                  return true;
+                }
+              }
+              return false;
+            }
+
+            // ঘুঁটি কাটার লজিক
+            void _checkCapture(List<int> currentPawns, int pawnIdx, bool isYellow) {
+              int currentGlobalPos = _getGlobalPos(currentPawns[pawnIdx], isYellow);
+              
+              // যদি সেফ জোনে না থাকে
+              if (currentPawns[pawnIdx] < 51 && !safePositions.contains(currentGlobalPos)) {
+                List<int> opponentPawns = isYellow ? redPawns : yellowPawns;
+                for (int j = 0; j < 4; j++) {
+                  if (opponentPawns[j] >= 0 && opponentPawns[j] < 51) {
+                    int oppGlobalPos = _getGlobalPos(opponentPawns[j], !isYellow);
+                    if (currentGlobalPos == oppGlobalPos) {
+                      // প্রতিপক্ষের ঘুঁটি কাটা গেল!
+                      opponentPawns[j] = -1; // হোম পকেটে ফেরত
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          backgroundColor: Colors.redAccent,
+                          content: Text(isYellow ? "💥 প্রতিপক্ষের ঘুঁটি কেটেছেন! বোনাস চাল!" : "⚠️ আপনার ঘুঁটি কাটা গেছে!"),
+                          duration: const Duration(seconds: 1),
+                        ),
+                      );
+                      // বোনাস চাল
+                      if (isYellow) {
+                        Future.delayed(const Duration(milliseconds: 600), () => _rollDice());
+                      }
+                      break;
+                    }
+                  }
+                }
+              }
+            }
+
+            int _getGlobalPos(int step, bool isYellow) {
+              // হলুদ শুরু হয় ২৬ নম্বর থেকে, লাল শুরু হয় ০ নম্বর থেকে
+              int startOffset = isYellow ? 26 : 0;
+              return (startOffset + step) % 52;
+            }
+
+            void _passTurn() {
+              setState(() {
+                _turn = (_turn == 0) ? 1 : 0;
+              });
+              if (_turn == 1) {
+                Future.delayed(const Duration(milliseconds: 1100), () => _rollDice());
+              }
+            }
+
+            void _showVictoryDialog(bool playerWon) {
+              _recordWin(playerWon);
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (ctx) => AlertDialog(
+                  backgroundColor: const Color(0xFF4A0A3A),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: Colors.amber, width: 2)),
+                  title: Row(
+                    children: [
+                      Icon(playerWon ? Icons.emoji_events : Icons.sentiment_dissatisfied, color: Colors.amber, size: 30),
+                      const SizedBox(width: 10),
+                      Text(playerWon ? "বিজয়ী!" : "ম্যাচ সমাপ্ত", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  content: Text(
+                    playerWon ? "অভিনন্দন! আপনি ম্যাচটি জিতেছেন এবং ৳${(widget.entryFee * 1.8).toStringAsFixed(0)} জিতে নিয়েছেন!" : "দুঃখিত, প্রতিপক্ষ ম্যাচটি জিতে নিয়েছে!",
+                    style: const TextStyle(color: Colors.white70),
+                  ),
+                  actions: [
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.amber),
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        Navigator.pop(context);
+                      },
+                      child: const Text("লবিতে ফিরুন", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            void _showQuickChatSheet() {
+              final messages = ["খেলুন দ্রুত!", "ভালো খেলেছেন!", "ওহ নো!", "ধন্যবাদ!", "দেখা হবে আবার!"];
+              showModalBottomSheet(
+                context: context,
+                backgroundColor: const Color(0xFF35042D),
+                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+                builder: (_) => Container(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text("কুইক চ্যাট মেসেজ", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                      const SizedBox(height: 10),
+                      ...messages.map((m) => ListTile(
+                        title: Text(m, style: const TextStyle(color: Colors.white)),
+                        onTap: () {
+                          Navigator.pop(context);
+                          setState(() => _chatBubble = m);
+                          Future.delayed(const Duration(seconds: 3), () => setState(() => _chatBubble = null));
+                        },
+                      )),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            void _showEmojiSheet() {
+              final emojis = ["😎", "🔥", "😂", "😡", "👍", "🎉", "👑"];
+              showModalBottomSheet(
+                context: context,
+                backgroundColor: const Color(0xFF35042D),
+                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+                builder: (_) => Container(
+                  padding: const EdgeInsets.all(20),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: emojis.map((e) => GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context);
+                        setState(() => _chatBubble = e);
+                        Future.delayed(const Duration(seconds: 3), () => setState(() => _chatBubble = null));
+                      },
+                      child: Text(e, style: const TextStyle(fontSize: 32)),
+                    )).toList(),
+                  ),
+                ),
+              );
             }
 
             @override
             Widget build(BuildContext context) {
               return Scaffold(
-                appBar: AppBar(
-                  title: Text(widget.entryFee > 0 ? "ম্যাচ - ফি: ৳${widget.entryFee.toInt()}" : "ফ্রেন্ডলি ম্যাচ"),
-                  backgroundColor: const Color(0xFF4A0A3A),
-                ),
+                backgroundColor: const Color(0xFF280B18), // ছবি ২-এর মতো রিচ ডার্ক ব্যাকড্রপ
                 body: SafeArea(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // প্রতিপক্ষ প্লেয়ার বার
-                      Container(
+                      // ১. টপ প্লেয়ার HUD (প্রতিপক্ষ - ছবি ২-এর মতো টপ রাইটে গোল্ডেন টাইগার ফ্রেম)
+                      Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        color: const Color(0xFF35042D),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Row(
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                              decoration: BoxDecoration(color: Colors.black45, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white24)),
+                              child: const Text("0/4", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                            ),
+                            // প্রতিপক্ষ অবতার ও নাম
+                            Column(
                               children: [
                                 Container(
-                                  padding: const EdgeInsets.all(2),
-                                  decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.greenAccent, width: 2)),
-                                  child: const CircleAvatar(radius: 16, backgroundColor: Colors.green, child: Icon(Icons.person, color: Colors.white, size: 20)),
+                                  padding: const EdgeInsets.all(3),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: _turn == 1 ? Colors.greenAccent : Colors.amber, width: 2.5),
+                                    boxShadow: _turn == 1 ? [const BoxShadow(color: Colors.greenAccent, blurRadius: 10)] : [],
+                                  ),
+                                  child: const CircleAvatar(radius: 22, backgroundColor: Colors.orange, child: Icon(Icons.person, color: Colors.white, size: 26)),
                                 ),
-                                const SizedBox(width: 8),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text("প্রতিপক্ষ (সবুজ দল)", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14)),
-                                    Text(_turn == 1 ? "চালছেন..." : "অপেক্ষা করছেন", style: TextStyle(color: _turn == 1 ? Colors.greenAccent : Colors.white54, fontSize: 11)),
-                                  ],
-                                ),
+                                const SizedBox(height: 2),
+                                const Text("tarun 💪💪", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
                               ],
                             ),
-                            if (_turn == 1) const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.greenAccent)),
                           ],
                         ),
                       ),
 
-                      // আসল প্রফেশনাল লুডু বোর্ড
+                      // ২. ছবি ২-এর হুবহু প্রিমিয়াম 3D Ludo Star বোর্ড
                       Center(
                         child: Container(
-                          width: MediaQuery.of(context).size.width - 16,
-                          height: MediaQuery.of(context).size.width - 16,
+                          width: MediaQuery.of(context).size.width - 20,
+                          height: MediaQuery.of(context).size.width - 20,
                           decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.amber, width: 4),
-                            boxShadow: const [BoxShadow(color: Colors.black87, blurRadius: 15, offset: Offset(0, 6))],
+                            color: const Color(0xFF5A2A18), // ডার্ক উডেন বর্ডার ফ্রেম
+                            borderRadius: BorderRadius.circular(22),
+                            border: Border.all(color: const Color(0xFF38160B), width: 6),
+                            boxShadow: const [
+                              BoxShadow(color: Colors.black87, blurRadius: 20, offset: Offset(0, 8)),
+                            ],
                           ),
                           child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(16),
                             child: CustomPaint(
-                              painter: MasterLudoBoardPainter(redPawns: redPawns, greenPawns: greenPawns),
+                              painter: RealisticLudoStarPainter(yellowPawns: yellowPawns, redPawns: redPawns),
                             ),
                           ),
                         ),
                       ),
 
-                      // নিজের প্লেয়ার কন্ট্রোল বার এবং আসল ডাইস
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF35042D),
-                          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                          boxShadow: [BoxShadow(color: Colors.black54, blurRadius: 8)],
+                      // চ্যাট বাবল
+                      if (_chatBubble != null)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                          decoration: BoxDecoration(color: Colors.amber, borderRadius: BorderRadius.circular(14)),
+                          child: Text(_chatBubble!, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
                         ),
+
+                      // ৩. বটম প্লেয়ার HUD (আপনি - ছবি ২-এর মতো গোল্ডেন ফ্রেম অবতার, ৩ডি ডাইস ও অ্যারো)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Row(
+                            // আপনি অবতার ও নাম
+                            Column(
                               children: [
+                                Text(widget.playerName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                                const SizedBox(height: 4),
                                 Container(
-                                  padding: const EdgeInsets.all(2),
-                                  decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.redAccent, width: 2)),
-                                  child: const CircleAvatar(radius: 18, backgroundColor: Colors.red, child: Icon(Icons.person, color: Colors.white, size: 22)),
-                                ),
-                                const SizedBox(width: 10),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text("আপনার চাল (লাল দল)", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 15)),
-                                    Text(_turn == 0 ? "👉 ছক্কায় ট্যাপ করুন!" : "প্রতিপক্ষের চাল", style: TextStyle(color: _turn == 0 ? Colors.amberAccent : Colors.white54, fontSize: 12, fontWeight: FontWeight.bold)),
-                                  ],
+                                  padding: const EdgeInsets.all(3),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: _turn == 0 ? Colors.amberAccent : Colors.white30, width: 2.5),
+                                    boxShadow: _turn == 0 ? [const BoxShadow(color: Colors.amber, blurRadius: 10)] : [],
+                                  ),
+                                  child: CircleAvatar(radius: 24, backgroundColor: Colors.amber, child: Text(widget.playerName.isNotEmpty ? widget.playerName[0].toUpperCase() : 'P', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 20))),
                                 ),
                               ],
                             ),
-                            // ৩ডি ডাইস উইজেট
+
+                            // ছবি ২-এর মতো অ্যানিমেটেড নির্দেশক তীর (Green Arrow)
+                            if (_turn == 0 && !_rolling)
+                              AnimatedBuilder(
+                                animation: _arrowAnimCtrl,
+                                builder: (_, __) => Transform.translate(
+                                  offset: Offset(0, _arrowAnimCtrl.value * 6),
+                                  child: const Icon(Icons.arrow_downward_rounded, color: Colors.greenAccent, size: 34),
+                                ),
+                              ),
+
+                            // ছবি ২-এর ৩ডি স্টাইল ডাইস
                             GestureDetector(
                               onTap: (_turn == 0 && !_rolling) ? _rollDice : null,
                               child: Container(
-                                width: 62,
-                                height: 62,
+                                width: 68,
+                                height: 68,
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(color: _turn == 0 ? Colors.amber : Colors.grey, width: 3),
-                                  boxShadow: [BoxShadow(color: _turn == 0 ? Colors.amber.withOpacity(0.5) : Colors.black45, blurRadius: 10, spreadRadius: 2)],
+                                  gradient: const LinearGradient(colors: [Color(0xFF29B6F6), Color(0xFF0288D1)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: Colors.amber, width: 3),
+                                  boxShadow: [
+                                    BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 10, offset: const Offset(0, 4)),
+                                    if (_turn == 0) const BoxShadow(color: Colors.amberAccent, blurRadius: 12),
+                                  ],
                                 ),
                                 child: Center(
                                   child: _rolling
-                                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.red, strokeWidth: 3))
-                                      : CustomPaint(size: const Size(40, 40), painter: DiceDotsPainter(dots: _dice)),
+                                      ? const SizedBox(width: 26, height: 26, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
+                                      : CustomPaint(size: const Size(44, 44), painter: DicePipsPainter(dots: _dice)),
                                 ),
                               ),
+                            ),
+
+                            // কুইক বাটন (EMOJI ও CHAT)
+                            Row(
+                              children: [
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4A0A3A), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                                  onPressed: _showEmojiSheet,
+                                  child: const Text("EMOJI", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                ),
+                                const SizedBox(width: 6),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4A0A3A), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                                  onPressed: _showQuickChatSheet,
+                                  child: const Text("CHAT", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -1393,180 +1586,219 @@ jobs:
             }
           }
 
-          // ৭. আসল আন্তর্জাতিক লুডু বোর্ড পেইন্টার (৪ হোম পকেট, স্টার জোন ও বিজয় ট্রায়াঙ্গেল)
-          class MasterLudoBoardPainter extends CustomPainter {
+          // ৭. ছবি ২-এর হুবহু আন্তর্জাতিক 3D Ludo Star ক্যানভাস পেইন্টার
+          class RealisticLudoStarPainter extends CustomPainter {
+            final List<int> yellowPawns;
             final List<int> redPawns;
-            final List<int> greenPawns;
-            MasterLudoBoardPainter({required this.redPawns, required this.greenPawns});
+            RealisticLudoStarPainter({required this.yellowPawns, required this.redPawns});
 
             @override
             void paint(Canvas canvas, Size size) {
               final step = size.width / 15;
               final paint = Paint()..style = PaintingStyle.fill;
 
-              // ১. ৪ কোণায় বেস বক্স (Home Bases)
-              paint.color = const Color(0xFFE53935); // Red Base
+              // ১. ৪ কোণায় মূল বেস
+              // টপ-লেফট: নীল
+              paint.color = const Color(0xFF1E88E5);
               canvas.drawRect(Rect.fromLTWH(0, 0, step * 6, step * 6), paint);
 
-              paint.color = const Color(0xFF43A047); // Green Base
+              // টপ-রাইট: লাল (ছবি ২-এর মতো)
+              paint.color = const Color(0xFFE53935);
               canvas.drawRect(Rect.fromLTWH(step * 9, 0, step * 6, step * 6), paint);
 
-              paint.color = const Color(0xFF1E88E5); // Blue Base
+              // বটম-লেফট: হলুদ (ছবি ২-এর মতো)
+              paint.color = const Color(0xFFFBC02D);
               canvas.drawRect(Rect.fromLTWH(0, step * 9, step * 6, step * 6), paint);
 
-              paint.color = const Color(0xFFFDD835); // Yellow Base
+              // বটম-রাইট: সবুজ (ছবি ২-এর মতো)
+              paint.color = const Color(0xFF2E7D32);
               canvas.drawRect(Rect.fromLTWH(step * 9, step * 9, step * 6, step * 6), paint);
 
-              // ২. হোম বেসের ভেতরের সাদা রাউন্ডেড বক্স ও ৪টি ঘুঁটির পকেট
-              void drawHomePocket(double startX, double startY, Color color, List<int> pawns, bool isRed) {
-                final whitePaint = Paint()..color = Colors.white;
-                final rrect = RRect.fromRectAndRadius(Rect.fromLTWH(startX + step, startY + step, step * 4, step * 4), const Radius.circular(16));
-                canvas.drawRRect(rrect, whitePaint);
+              // ২. ছবি ২-এর মতো ডিপ-রিসেসড পকেট ও ৩ডি ঘুঁটি ড্র করা
+              void drawRealisticBase(double startX, double startY, Color baseBgColor, List<int> pawns, bool isYellow, bool isRed) {
+                // অভ্যন্তরীণ ডার্ক বেভেল
+                final innerRect = Rect.fromLTWH(startX + step * 0.8, startY + step * 0.8, step * 4.4, step * 4.4);
+                final innerRRect = RRect.fromRectAndRadius(innerRect, const Radius.circular(18));
+                canvas.drawRRect(innerRRect, Paint()..color = baseBgColor.withOpacity(0.85));
 
-                // ৪টি ঘুঁটির ঘর
-                final pocketCoords = [
+                // ৪টি রিসেসড স্লট
+                final slotCoords = [
                   Offset(startX + step * 2, startY + step * 2),
                   Offset(startX + step * 4, startY + step * 2),
                   Offset(startX + step * 2, startY + step * 4),
                   Offset(startX + step * 4, startY + step * 4),
                 ];
 
-                final slotPaint = Paint()..color = color.withOpacity(0.2)..style = PaintingStyle.fill;
-                final borderPaint = Paint()..color = color..style = PaintingStyle.stroke..strokeWidth = 2;
-
                 for (int i = 0; i < 4; i++) {
-                  canvas.drawCircle(pocketCoords[i], step * 0.7, slotPaint);
-                  canvas.drawCircle(pocketCoords[i], step * 0.7, borderPaint);
+                  // রিসেসড শ্যাডো পিট
+                  canvas.drawCircle(slotCoords[i], step * 0.72, Paint()..color = Colors.black45);
+                  canvas.drawCircle(slotCoords[i], step * 0.65, Paint()..color = baseBgColor);
 
-                  // ঘুঁটি যদি ঘরে থাকে
+                  // যদি ঘুঁটি ঘরে থাকে, ৩ডি ঘুঁটি ড্র করা
                   if (pawns[i] == -1) {
-                    _drawRealisticPawn(canvas, pocketCoords[i], step * 0.55, color);
+                    _draw3DToken(canvas, slotCoords[i], step * 0.58, isYellow ? Colors.amber : (isRed ? const Color(0xFFD32F2F) : Colors.white), isYellow);
                   }
                 }
               }
 
-              drawHomePocket(0, 0, const Color(0xFFE53935), redPawns, true);
-              drawHomePocket(step * 9, 0, const Color(0xFF43A047), greenPawns, false);
-              drawHomePocket(0, step * 9, const Color(0xFF1E88E5), [-1, -1, -1, -1], false);
-              drawHomePocket(step * 9, step * 9, const Color(0xFFFDD835), [-1, -1, -1, -1], false);
+              drawRealisticBase(0, 0, const Color(0xFF1565C0), [-1, -1, -1, -1], false, false);
+              drawRealisticBase(step * 9, 0, const Color(0xFFC62828), redPawns, false, true);
+              drawRealisticBase(0, step * 9, const Color(0xFFF57F17), yellowPawns, true, false);
+              drawRealisticBase(step * 9, step * 9, const Color(0xFF1B5E20), [-1, -1, -1, -1], false, false);
 
               // ৩. হোম পাথ বা রঙিন রাস্তা
               final pathRed = Paint()..color = const Color(0xFFE53935);
-              for (int c = 1; c <= 5; c++) {
-                canvas.drawRect(Rect.fromLTWH(c * step, 7 * step, step, step), pathRed);
-              }
-
-              final pathGreen = Paint()..color = const Color(0xFF43A047);
               for (int r = 1; r <= 5; r++) {
-                canvas.drawRect(Rect.fromLTWH(7 * step, r * step, step, step), pathGreen);
+                canvas.drawRect(Rect.fromLTWH(7 * step, r * step, step, step), pathRed);
               }
 
-              final pathYellow = Paint()..color = const Color(0xFFFDD835);
-              for (int c = 9; c <= 13; c++) {
-                canvas.drawRect(Rect.fromLTWH(c * step, 7 * step, step, step), pathYellow);
+              final pathYellow = Paint()..color = const Color(0xFFFBC02D);
+              for (int r = 9; r <= 13; r++) {
+                canvas.drawRect(Rect.fromLTWH(7 * step, r * step, step, step), pathYellow);
               }
 
               final pathBlue = Paint()..color = const Color(0xFF1E88E5);
-              for (int r = 9; r <= 13; r++) {
-                canvas.drawRect(Rect.fromLTWH(7 * step, r * step, step, step), pathBlue);
+              for (int c = 1; c <= 5; c++) {
+                canvas.drawRect(Rect.fromLTWH(c * step, 7 * step, step, step), pathBlue);
               }
 
-              // ৪. সেফ জোন স্টার (⭐)
-              canvas.drawRect(Rect.fromLTWH(1 * step, 6 * step, step, step), pathRed); // Red entry
-              canvas.drawRect(Rect.fromLTWH(8 * step, 1 * step, step, step), pathGreen); // Green entry
+              final pathGreen = Paint()..color = const Color(0xFF2E7D32);
+              for (int c = 9; c <= 13; c++) {
+                canvas.drawRect(Rect.fromLTWH(c * step, 7 * step, step, step), pathGreen);
+              }
 
-              // গ্রিড বর্ডার লাইন ড্রয়িং
-              final gridBorder = Paint()..style = PaintingStyle.stroke..color = Colors.black26..strokeWidth = 1;
+              // ৪. সাদা ঘরগুলো এবং স্টার ও তীরের গ্রিড
+              final gridLine = Paint()..style = PaintingStyle.stroke..color = Colors.black26..strokeWidth = 1.2;
               for (int r = 0; r < 15; r++) {
                 for (int c = 0; c < 15; c++) {
-                  canvas.drawRect(Rect.fromLTWH(c * step, r * step, step, step), gridBorder);
+                  canvas.drawRect(Rect.fromLTWH(c * step, r * step, step, step), gridLine);
                 }
               }
 
-              // ৫. সেন্ট্রাল হোম ট্রায়াঙ্গেল
+              // ছবি ২-এর মতো স্টার (⭐) ও গ্লোব (🌍)
+              void drawStar(double c, double r) {
+                final center = Offset((c + 0.5) * step, (r + 0.5) * step);
+                final starPaint = Paint()..color = Colors.black38..style = PaintingStyle.fill;
+                canvas.drawCircle(center, step * 0.35, starPaint);
+              }
+
+              drawStar(6, 2);
+              drawStar(12, 6);
+              drawStar(8, 12);
+              drawStar(2, 8);
+
+              // ৫. সেন্ট্রাল ৪-কালার ট্রায়াঙ্গেল
               final center = Offset(step * 7.5, step * 7.5);
-              final pRed = Path()..moveTo(step * 6, step * 6)..lineTo(step * 6, step * 9)..lineTo(center.dx, center.dy)..close();
-              canvas.drawPath(pRed, Paint()..color = const Color(0xFFE53935));
+              canvas.drawPath(Path()..moveTo(step * 6, step * 6)..lineTo(step * 9, step * 6)..lineTo(center.dx, center.dy)..close(), Paint()..color = const Color(0xFFE53935));
+              canvas.drawPath(Path()..moveTo(step * 6, step * 9)..lineTo(step * 9, step * 9)..lineTo(center.dx, center.dy)..close(), Paint()..color = const Color(0xFFFBC02D));
+              canvas.drawPath(Path()..moveTo(step * 6, step * 6)..lineTo(step * 6, step * 9)..lineTo(center.dx, center.dy)..close(), Paint()..color = const Color(0xFF1E88E5));
+              canvas.drawPath(Path()..moveTo(step * 9, step * 6)..lineTo(step * 9, step * 9)..lineTo(center.dx, center.dy)..close(), Paint()..color = const Color(0xFF2E7D32));
 
-              final pGreen = Path()..moveTo(step * 6, step * 6)..lineTo(step * 9, step * 6)..lineTo(center.dx, center.dy)..close();
-              canvas.drawPath(pGreen, Paint()..color = const Color(0xFF43A047));
-
-              final pYellow = Path()..moveTo(step * 9, step * 6)..lineTo(step * 9, step * 9)..lineTo(center.dx, center.dy)..close();
-              canvas.drawPath(pYellow, Paint()..color = const Color(0xFFFDD835));
-
-              final pBlue = Path()..moveTo(step * 6, step * 9)..lineTo(step * 9, step * 9)..lineTo(center.dx, center.dy)..close();
-              canvas.drawPath(pBlue, Paint()..color = const Color(0xFF1E88E5));
-
-              // ৬. চলমান ঘুঁটিগুলো ড্র করা
+              // ৬. চলমান ৩ডি ঘুঁটি ড্র করা (বোর্ডের ওপর)
               for (int i = 0; i < 4; i++) {
-                if (redPawns[i] >= 0) {
-                  double posX = (1.5 + (redPawns[i] % 12)) * step;
-                  _drawRealisticPawn(canvas, Offset(posX, step * 7.5), step * 0.5, const Color(0xFFD32F2F));
+                if (yellowPawns[i] >= 0) {
+                  Offset pos = _calculateBoardPos(yellowPawns[i], true, step);
+                  _draw3DToken(canvas, pos, step * 0.52, Colors.amber, true);
                 }
-                if (greenPawns[i] >= 0) {
-                  double posX = (13.5 - (greenPawns[i] % 12)) * step;
-                  _drawRealisticPawn(canvas, Offset(posX, step * 7.5), step * 0.5, const Color(0xFF388E3C));
+                if (redPawns[i] >= 0) {
+                  Offset pos = _calculateBoardPos(redPawns[i], false, step);
+                  _draw3DToken(canvas, pos, step * 0.52, const Color(0xFFD32F2F), false);
                 }
               }
             }
 
-            // ৩ডি লুডু ঘুঁটি পেইন্টার
-            void _drawRealisticPawn(Canvas canvas, Offset pos, double radius, Color color) {
-              // শ্যাডো
-              canvas.drawCircle(pos.translate(0, 3), radius, Paint()..color = Colors.black38);
-              // মূল বডি
-              canvas.drawCircle(pos, radius, Paint()..color = color);
-              // গোল্ডেন রিং
-              canvas.drawCircle(pos, radius * 0.65, Paint()..color = Colors.amber..style = PaintingStyle.stroke..strokeWidth = 2);
-              // মাথার ক্যাপ
-              canvas.drawCircle(pos, radius * 0.45, Paint()..color = Colors.white);
+            Offset _calculateBoardPos(int stepIdx, bool isYellow, double step) {
+              // সাধারণ রাস্তায় চলাচলের পথ
+              if (stepIdx < 51) {
+                int global = (stepIdx + (isYellow ? 26 : 0)) % 52;
+                return _mapGlobalStepToOffset(global, step);
+              }
+              // হোম কলামে চলাচলের পথ
+              int homeStep = stepIdx - 51;
+              if (isYellow) {
+                return Offset(step * 7.5, step * (13.5 - homeStep));
+              } else {
+                return Offset(step * 7.5, step * (1.5 + homeStep));
+              }
+            }
+
+            Offset _mapGlobalStepToOffset(int g, double step) {
+              if (g < 5) return Offset(step * (8.5), step * (1.5 + g));
+              if (g < 11) return Offset(step * (9.5 + (g - 5)), step * (6.5));
+              if (g < 13) return Offset(step * (14.5), step * (7.5 + (g - 11)));
+              if (g < 18) return Offset(step * (13.5 - (g - 13)), step * (8.5));
+              if (g < 24) return Offset(step * (8.5), step * (9.5 + (g - 18)));
+              if (g < 26) return Offset(step * (7.5 - (g - 24)), step * (14.5));
+              if (g < 31) return Offset(step * (6.5), step * (13.5 - (g - 26)));
+              if (g < 37) return Offset(step * (5.5 - (g - 31)), step * (8.5));
+              if (g < 39) return Offset(step * (0.5), step * (7.5 - (g - 37)));
+              if (g < 44) return Offset(step * (1.5 + (g - 39)), step * (6.5));
+              if (g < 50) return Offset(step * (6.5), step * (5.5 - (g - 44)));
+              return Offset(step * (7.5), step * (0.5));
+            }
+
+            // ছবি ২-এর মতো খাঁটি ৩ডি ক্রাউন ঘুঁটি ড্রয়িং
+            void _draw3DToken(Canvas canvas, Offset pos, double radius, Color baseColor, bool isCrown) {
+              // ১. ড্রপ শ্যাডো
+              canvas.drawCircle(pos.translate(0, 4), radius, Paint()..color = Colors.black45);
+              // ২. ৩ডি বেভেল বডি
+              canvas.drawCircle(pos, radius, Paint()..color = baseColor);
+              // ৩. গোল্ডেন রিং
+              canvas.drawCircle(pos, radius * 0.72, Paint()..color = const Color(0xFFFFD700)..style = PaintingStyle.stroke..strokeWidth = 2.5);
+              // ৪. সেন্ট্রাল এমব্লেম (ক্রাউন/স্টার)
+              canvas.drawCircle(pos, radius * 0.45, Paint()..color = Colors.white.withOpacity(0.9));
+              canvas.drawCircle(pos, radius * 0.25, Paint()..color = baseColor);
             }
 
             @override
             bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
           }
 
-          // ৮. আসল ডাইস ফোঁটা পেইন্টার (১ থেকে ৬ ফোঁটা)
-          class DiceDotsPainter extends CustomPainter {
+          // ৮. ৩ডি ডাইস ফেস পেইন্টার
+          class DicePipsPainter extends CustomPainter {
             final int dots;
-            DiceDotsPainter({required this.dots});
+            DicePipsPainter({required this.dots});
 
             @override
             void paint(Canvas canvas, Size size) {
-              final dotPaint = Paint()..color = Colors.black87..style = PaintingStyle.fill;
-              final r = size.width * 0.1;
+              final pip = Paint()..color = Colors.white..style = PaintingStyle.fill;
+              final shadow = Paint()..color = Colors.black38..style = PaintingStyle.fill;
+              final r = size.width * 0.12;
               final w = size.width;
               final h = size.height;
 
-              void d(double x, double y) => canvas.drawCircle(Offset(x, y), r, dotPaint);
+              void drawPip(double x, double y) {
+                canvas.drawCircle(Offset(x, y + 1.5), r, shadow);
+                canvas.drawCircle(Offset(x, y), r, pip);
+              }
 
               if (dots == 1) {
-                d(w * 0.5, h * 0.5);
+                drawPip(w * 0.5, h * 0.5);
               } else if (dots == 2) {
-                d(w * 0.25, h * 0.25);
-                d(w * 0.75, h * 0.75);
+                drawPip(w * 0.28, h * 0.28);
+                drawPip(w * 0.72, h * 0.72);
               } else if (dots == 3) {
-                d(w * 0.25, h * 0.25);
-                d(w * 0.5, h * 0.5);
-                d(w * 0.75, h * 0.75);
+                drawPip(w * 0.25, h * 0.25);
+                drawPip(w * 0.5, h * 0.5);
+                drawPip(w * 0.75, h * 0.75);
               } else if (dots == 4) {
-                d(w * 0.25, h * 0.25);
-                d(w * 0.75, h * 0.25);
-                d(w * 0.25, h * 0.75);
-                d(w * 0.75, h * 0.75);
+                drawPip(w * 0.28, h * 0.28);
+                drawPip(w * 0.72, h * 0.28);
+                drawPip(w * 0.28, h * 0.72);
+                drawPip(w * 0.72, h * 0.72);
               } else if (dots == 5) {
-                d(w * 0.25, h * 0.25);
-                d(w * 0.75, h * 0.25);
-                d(w * 0.5, h * 0.5);
-                d(w * 0.25, h * 0.75);
-                d(w * 0.75, h * 0.75);
+                drawPip(w * 0.28, h * 0.28);
+                drawPip(w * 0.72, h * 0.28);
+                drawPip(w * 0.5, h * 0.5);
+                drawPip(w * 0.28, h * 0.72);
+                drawPip(w * 0.72, h * 0.72);
               } else if (dots == 6) {
-                d(w * 0.25, h * 0.2);
-                d(w * 0.75, h * 0.2);
-                d(w * 0.25, h * 0.5);
-                d(w * 0.75, h * 0.5);
-                d(w * 0.25, h * 0.8);
-                d(w * 0.75, h * 0.8);
+                drawPip(w * 0.28, h * 0.22);
+                drawPip(w * 0.72, h * 0.22);
+                drawPip(w * 0.28, h * 0.5);
+                drawPip(w * 0.72, h * 0.5);
+                drawPip(w * 0.28, h * 0.78);
+                drawPip(w * 0.72, h * 0.78);
               }
             }
 
@@ -1575,11 +1807,11 @@ jobs:
           }
           EOF
 
-      - name: Build Real Ludo Star Release APK
+      - name: Build Ludo Star Masterpiece APK
         run: flutter build apk --release
 
-      - name: Upload Real Ludo Star APK Artifact
+      - name: Upload Masterpiece APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: jumman-ludo-real-star-edition
+          name: jumman-ludo-star-3d-masterpiece
           path: build/app/outputs/flutter-apk/app-release.apk

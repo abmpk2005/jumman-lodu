@@ -1,4 +1,4 @@
-name: Build Ludo King Pro Publishing Final Edition
+name: Build Ludo King Pro Final Release
 
 on:
   push:
@@ -24,7 +24,7 @@ jobs:
           flutter-version: '3.19.6'
           channel: 'stable'
 
-      - name: Build Publishing Ready APK
+      - name: Build Production Ready APK
         run: |
           flutter create --org com.jumman.ludo --project-name jumman_ludo .
           
@@ -34,7 +34,7 @@ jobs:
           # ডিপেন্ডেন্সি
           cat << 'EOF' > pubspec.yaml
           name: jumman_ludo
-          description: "Jumman Ludo King Publishing Ready"
+          description: "Jumman Ludo Final Release"
           publish_to: "none"
           version: 1.0.0+1
           environment:
@@ -50,7 +50,7 @@ jobs:
             uses-material-design: true
           EOF
 
-          # চূড়ান্ত ও সম্পূর্ণ কোড (main.dart)
+          # রিলিজ কোড (main.dart)
           cat << 'EOF' > lib/main.dart
           import 'dart:async';
           import 'dart:math';
@@ -131,7 +131,7 @@ jobs:
                       Icon(Icons.casino, size: 90, color: Color(0xFFFFD700)),
                       SizedBox(height: 16),
                       Text("JUMMAN LUDO", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 2)),
-                      Text("★ PUBLISHING EDITION ★", style: TextStyle(color: Colors.amberAccent, letterSpacing: 2, fontWeight: FontWeight.bold, fontSize: 13)),
+                      Text("★ FINAL PRODUCTION EDITION ★", style: TextStyle(color: Colors.amberAccent, letterSpacing: 2, fontWeight: FontWeight.bold, fontSize: 13)),
                       SizedBox(height: 35),
                       CircularProgressIndicator(color: Colors.greenAccent),
                     ],
@@ -249,7 +249,6 @@ jobs:
             }
           }
 
-          // হোম স্ক্রিন (সেটিংস ও প্রোফাইল ড্যাশবোর্ড সহ)
           class HomeScreen extends StatefulWidget {
             final String phone;
             final String userId;
@@ -730,15 +729,26 @@ jobs:
 
             @override
             Widget build(BuildContext context) {
+              final size = MediaQuery.of(context).size.width;
+              final step = size / 15.0;
+
               return Scaffold(
                 appBar: AppBar(title: Text("ম্যাচ - ফি: ৳${widget.entryFee.toInt()}"), backgroundColor: const Color(0xFF4A0A3A)),
                 body: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Padding(padding: EdgeInsets.all(12), child: Row(children: [CircleAvatar(backgroundColor: Colors.green, radius: 12), SizedBox(width: 8), Text("প্রতিপক্ষ (সবুজ দল)", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))])),
-                    Center(child: Container(width: 300, height: 300, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.amber, width: 3)), child: const Center(child: Text("লুডু বোর্ড এরিয়া", style: TextStyle(color: Colors.black45, fontWeight: FontWeight.bold, fontSize: 16))))),
+                    const Padding(padding: EdgeInsets.all(8), child: Row(children: [CircleAvatar(backgroundColor: Colors.green, radius: 12), SizedBox(width: 8), Text("প্রতিপক্ষ (সবুজ দল)", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))])),
+                    // পরিপূর্ণ লুডু বোর্ড পেইন্টার (সাদা রাস্তা ও চার রঙের ঘর)
+                    Center(
+                      child: SizedBox(
+                        width: size, height: size,
+                        child: CustomPaint(
+                          painter: FullLudoBoardPainter(step: step),
+                        ),
+                      ),
+                    ),
                     Container(
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.all(16),
                       color: const Color(0xFF1E293B),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -760,15 +770,71 @@ jobs:
               );
             }
           }
+
+          class FullLudoBoardPainter extends CustomPainter {
+            final double step;
+            FullLudoBoardPainter({required this.step});
+
+            @override
+            void paint(Canvas canvas, Size size) {
+              final p = Paint()..style = PaintingStyle.fill;
+              canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), Paint()..color = Colors.white);
+
+              p.color = const Color(0xFF1E88E5);
+              canvas.drawRect(Rect.fromLTWH(0, 0, step * 6, step * 6), p);
+              p.color = const Color(0xFFE53935);
+              canvas.drawRect(Rect.fromLTWH(step * 9, 0, step * 6, step * 6), p);
+              p.color = const Color(0xFFFBC02D);
+              canvas.drawRect(Rect.fromLTWH(0, step * 9, step * 6, step * 6), p);
+              p.color = const Color(0xFF2E7D32);
+              canvas.drawRect(Rect.fromLTWH(step * 9, step * 9, step * 6, step * 6), p);
+
+              void box(double x, double y, Color c) {
+                canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(x + step * 0.8, y + step * 0.8, step * 4.4, step * 4.4), const Radius.circular(16)), Paint()..color = Colors.white);
+                for (var pt in [Offset(x + step * 1.8, y + step * 1.8), Offset(x + step * 4.2, y + step * 1.8), Offset(x + step * 1.8, y + step * 4.2), Offset(x + step * 4.2, y + step * 4.2)]) {
+                  canvas.drawCircle(pt, step * 0.65, Paint()..color = c.withOpacity(0.2));
+                }
+              }
+
+              box(0, 0, const Color(0xFF1E88E5));
+              box(step * 9, 0, const Color(0xFFE53935));
+              box(0, step * 9, const Color(0xFFFBC02D));
+              box(step * 9, step * 9, const Color(0xFF2E7D32));
+
+              for (int r = 1; r <= 5; r++) { canvas.drawRect(Rect.fromLTWH(7 * step, r * step, step, step), Paint()..color = const Color(0xFFE53935)); }
+              for (int r = 9; r <= 13; r++) { canvas.drawRect(Rect.fromLTWH(7 * step, r * step, step, step), Paint()..color = const Color(0xFFFBC02D)); }
+              for (int c = 1; c <= 5; c++) { canvas.drawRect(Rect.fromLTWH(c * step, 7 * step, step, step), Paint()..color = const Color(0xFF1E88E5)); }
+              for (int c = 9; c <= 13; c++) { canvas.drawRect(Rect.fromLTWH(c * step, 7 * step, step, step), Paint()..color = const Color(0xFF2E7D32)); }
+
+              canvas.drawRect(Rect.fromLTWH(8 * step, 1 * step, step, step), Paint()..color = const Color(0xFFE53935));
+              canvas.drawRect(Rect.fromLTWH(6 * step, 13 * step, step, step), Paint()..color = const Color(0xFFFBC02D));
+
+              final b = Paint()..style = PaintingStyle.stroke..color = Colors.black26..strokeWidth = 1.0;
+              for (int r = 0; r < 15; r++) {
+                for (int c = 0; c < 15; c++) {
+                  canvas.drawRect(Rect.fromLTWH(c * step, r * step, step, step), b);
+                }
+              }
+
+              final cnt = Offset(step * 7.5, step * 7.5);
+              canvas.drawPath(Path()..moveTo(step * 6, step * 6)..lineTo(step * 9, step * 6)..lineTo(cnt.dx, cnt.dy)..close(), Paint()..color = const Color(0xFFE53935));
+              canvas.drawPath(Path()..moveTo(step * 6, step * 9)..lineTo(step * 9, step * 9)..lineTo(cnt.dx, cnt.dy)..close(), Paint()..color = const Color(0xFFFBC02D));
+              canvas.drawPath(Path()..moveTo(step * 6, step * 6)..lineTo(step * 6, step * 9)..lineTo(cnt.dx, cnt.dy)..close(), Paint()..color = const Color(0xFF1E88E5));
+              canvas.drawPath(Path()..moveTo(step * 9, step * 6)..lineTo(step * 9, step * 9)..lineTo(cnt.dx, cnt.dy)..close(), Paint()..color = const Color(0xFF2E7D32));
+            }
+
+            @override
+            bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+          }
           EOF
 
-      - name: Build Final Publishing APK
+      - name: Build Production Release APK
         run: |
           flutter pub get
           flutter build apk --release
 
-      - name: Upload APK Artifact
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: jumman-ludo-final-publishing-apk
+          name: jumman-ludo-final-release
           path: build/app/outputs/flutter-apk/app-release.apk

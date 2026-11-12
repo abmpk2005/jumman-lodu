@@ -1,4 +1,4 @@
-name: Build Absolute Flawless Ludo Star
+name: Build Ludo King Pro Final
 
 on:
   push:
@@ -9,32 +9,29 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Java
+      - name: Setup Java
         uses: actions/setup-java@v3
         with:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Set up Flutter
+      - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.19.6'
           channel: 'stable'
 
-      - name: Generate Absolute Flawless Ludo Game
+      - name: Build System
         run: |
           flutter create --org com.jumman.ludo --project-name jumman_ludo .
-          
-          # ১. অ্যান্ড্রয়েড পারমিশন কনফিগারেশন
-          sed -i '/<application/i <uses-permission android:name="android.permission.INTERNET"/>\n<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>\n<uses-permission android:name="android.permission.VIBRATE"/>\n<queries>\n<intent><action android:name="android.intent.action.VIEW"/><data android:scheme="https"/></intent>\n<package android:name="com.whatsapp"/>\n<package android:name="org.telegram.messenger"/>\n</queries>' android/app/src/main/AndroidManifest.xml
+          sed -i '/<application/i <uses-permission android:name="android.permission.INTERNET"/>\n<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>\n<uses-permission android:name="android.permission.VIBRATE"/>\n<queries><intent><action android:name="android.intent.action.VIEW"/><data android:scheme="https"/></intent><package android:name="com.whatsapp"/><package android:name="org.telegram.messenger"/></queries>' android/app/src/main/AndroidManifest.xml
 
-          # ২. ডিপেন্ডেন্সি কনফিগারেশন
           cat << 'EOF' > pubspec.yaml
           name: jumman_ludo
-          description: "Jumman Ludo 100 Percent Complete Master Edition"
+          description: "Jumman Ludo King Pro"
           publish_to: "none"
           version: 1.0.0+1
           environment:
@@ -51,7 +48,6 @@ jobs:
             uses-material-design: true
           EOF
 
-          # ৩. সম্পূর্ণ নিখুঁত গেম ইঞ্জিন ও UI (main.dart)
           cat << 'EOF' > lib/main.dart
           import 'dart:async';
           import 'dart:math';
@@ -77,7 +73,6 @@ jobs:
 
           class JummanLudoApp extends StatelessWidget {
             const JummanLudoApp({super.key});
-
             @override
             Widget build(BuildContext context) {
               return MaterialApp(
@@ -86,13 +81,14 @@ jobs:
                 theme: ThemeData(
                   brightness: Brightness.dark,
                   textTheme: GoogleFonts.hindSiliguriTextTheme(ThemeData.dark().textTheme),
-                  scaffoldBackgroundColor: const Color(0xFF1D0322),
+                  scaffoldBackgroundColor: const Color(0xFF19011F),
                 ),
                 home: const SplashScreen(),
               );
             }
           }
 
+          // ১. স্প্ল্যাশ স্ক্রিন
           class SplashScreen extends StatefulWidget {
             const SplashScreen({super.key});
             @override
@@ -108,31 +104,21 @@ jobs:
 
             Future<void> _init() async {
               await Future.delayed(const Duration(seconds: 2));
-              Map<String, dynamic>? config;
-              try {
-                config = await Supabase.instance.client.from('app_config').select().eq('id', 1).maybeSingle();
-              } catch (_) {}
-
-              if (!mounted) return;
-
-              if (config != null && config['is_maintenance'] == true) {
-                Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => MaintenanceScreen(message: config!['maintenance_message'] ?? "সার্ভার আপডেট চলছে।")));
-                return;
-              }
-
-              if (config != null && (config['latest_version'] ?? '1.0.0') != currentAppVersion) {
-                Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => UpdateScreen(downloadUrl: config!['apk_download_url'] ?? '', latestVersion: config['latest_version'] ?? '1.0.1')));
-                return;
-              }
-
               final prefs = await SharedPreferences.getInstance();
               final phone = prefs.getString('user_phone');
               final userId = prefs.getString('user_id');
 
-              if (phone != null && phone.isNotEmpty && userId != null) {
-                Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomeScreen(phone: phone, userId: userId, config: config)));
+              if (phone != null && userId != null) {
+                try {
+                  final p = await Supabase.instance.client.from('profiles').select().eq('phone_number', phone).maybeSingle();
+                  if (p != null && p['is_banned'] == true) {
+                    if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const BannedScreen()));
+                    return;
+                  }
+                } catch (_) {}
+                if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomeScreen(phone: phone, userId: userId)));
               } else {
-                Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => LoginScreen(config: config)));
+                if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
               }
             }
 
@@ -142,27 +128,17 @@ jobs:
                 body: Container(
                   width: double.infinity,
                   decoration: const BoxDecoration(
-                    gradient: LinearGradient(colors: [Color(0xFF4A0A58), Color(0xFF1B0121)], begin: Alignment.topCenter, end: Alignment.bottomCenter),
+                    gradient: LinearGradient(colors: [Color(0xFF4A0A58), Color(0xFF19011F)], begin: Alignment.topCenter, end: Alignment.bottomCenter),
                   ),
-                  child: Column(
+                  child: const Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(22),
-                        decoration: BoxDecoration(shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.amber.withOpacity(0.5), blurRadius: 40, spreadRadius: 10)]),
-                        child: const Icon(Icons.casino, size: 95, color: Color(0xFFFFD700)),
-                      ),
-                      const SizedBox(height: 16),
-                      ShaderMask(
-                        shaderCallback: (bounds) => const LinearGradient(colors: [Color(0xFFFFDF00), Color(0xFFFF4500)]).createShader(bounds),
-                        child: const Text("JUMMAN LUDO", style: TextStyle(fontSize: 34, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 2)),
-                      ),
-                      const Text("★ OFFICIAL STAR EDITION ★", style: TextStyle(color: Colors.amberAccent, letterSpacing: 2, fontWeight: FontWeight.bold, fontSize: 13)),
-                      const SizedBox(height: 40),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 60),
-                        child: ClipRRect(borderRadius: BorderRadius.all(Radius.circular(20)), child: LinearProgressIndicator(minHeight: 8, backgroundColor: Color(0xFF3B0C46), color: Colors.greenAccent)),
-                      ),
+                      Icon(Icons.casino, size: 90, color: Color(0xFFFFD700)),
+                      SizedBox(height: 16),
+                      Text("JUMMAN LUDO", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 2)),
+                      Text("★ LUDO KING PRO EDITION ★", style: TextStyle(color: Colors.amberAccent, letterSpacing: 2, fontWeight: FontWeight.bold, fontSize: 13)),
+                      SizedBox(height: 35),
+                      CircularProgressIndicator(color: Colors.greenAccent),
                     ],
                   ),
                 ),
@@ -170,67 +146,34 @@ jobs:
             }
           }
 
-          class UpdateScreen extends StatelessWidget {
-            final String downloadUrl;
-            final String latestVersion;
-            const UpdateScreen({super.key, required this.downloadUrl, required this.latestVersion});
-
-            @override
-            Widget build(BuildContext context) {
-              return Scaffold(
-                body: Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF8B125D), Color(0xFF240428)], begin: Alignment.topCenter, end: Alignment.bottomCenter)),
-                  child: Center(
-                    child: Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(color: const Color(0xFF3A0638), borderRadius: BorderRadius.circular(24), border: Border.all(color: Colors.amber, width: 3)),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.system_update_rounded, size: 70, color: Colors.amber),
-                          const SizedBox(height: 14),
-                          const Text("নতুন আপডেট এসেছে!", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
-                          const SizedBox(height: 6),
-                          Text("ভার্সন v$latestVersion", style: const TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 20),
-                          ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.greenAccent.shade700, foregroundColor: Colors.white, minimumSize: const Size(double.infinity, 50)),
-                            icon: const Icon(Icons.download_rounded),
-                            label: const Text("এখনই আপডেট করুন"),
-                            onPressed: () async {
-                              final uri = Uri.parse(downloadUrl);
-                              if (await canLaunchUrl(uri)) launchUrl(uri, mode: LaunchMode.externalApplication);
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            }
-          }
-
-          class MaintenanceScreen extends StatelessWidget {
-            final String message;
-            const MaintenanceScreen({super.key, required this.message});
-
+          // ব্লক স্ক্রিন
+          class BannedScreen extends StatelessWidget {
+            const BannedScreen({super.key});
             @override
             Widget build(BuildContext context) {
               return Scaffold(
                 body: Container(
                   padding: const EdgeInsets.all(30),
-                  color: const Color(0xFF1F0226),
+                  color: const Color(0xFF24022B),
                   child: Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.construction_rounded, size: 80, color: Colors.amber),
+                        const Icon(Icons.block_flipped, size: 90, color: Colors.redAccent),
                         const SizedBox(height: 20),
-                        const Text("সার্ভার মেইনটেন্যান্স", style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white)),
+                        const Text("অ্যাকাউন্ট স্থগিত (Blocked)", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
                         const SizedBox(height: 12),
-                        Text(message, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+                        const Text("নিয়ম লঙ্ঘনের কারণে আপনার আইডি স্থগিত করা হয়েছে। পুনরায় সচল করতে সাপোর্টে যোগাযোগ করুন।", textAlign: TextAlign.center, style: TextStyle(color: Colors.white70)),
+                        const SizedBox(height: 24),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF25D366), minimumSize: const Size(double.infinity, 50)),
+                          icon: const Icon(Icons.chat),
+                          label: const Text("WhatsApp সাপোর্টে কথা বলুন"),
+                          onPressed: () async {
+                            final uri = Uri.parse("https://wa.me/8801774229222?text=${Uri.encodeComponent('আমার অ্যাকাউন্ট ব্লক করা হয়েছে, দয়া করে আনব্লক করুন।')}");
+                            if (await canLaunchUrl(uri)) launchUrl(uri, mode: LaunchMode.externalApplication);
+                          },
+                        ),
                       ],
                     ),
                   ),
@@ -239,105 +182,73 @@ jobs:
             }
           }
 
+          // ২. লগইন
           class LoginScreen extends StatefulWidget {
-            final Map<String, dynamic>? config;
-            const LoginScreen({super.key, this.config});
+            const LoginScreen({super.key});
             @override
             State<LoginScreen> createState() => _LoginScreenState();
           }
 
           class _LoginScreenState extends State<LoginScreen> {
-            final _nameCtrl = TextEditingController();
-            final _phoneCtrl = TextEditingController();
-            bool _isLoading = false;
+            final _name = TextEditingController();
+            final _phone = TextEditingController();
+            bool _loading = false;
 
             Future<void> _login() async {
-              final name = _nameCtrl.text.trim();
-              final phone = _phoneCtrl.text.trim();
-              if (name.isEmpty || phone.length < 11) {
+              final n = _name.text.trim();
+              final p = _phone.text.trim();
+              if (n.isEmpty || p.length < 11) {
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("সঠিক নাম ও ১১ ডিজিটের মোবাইল নম্বর দিন")));
                 return;
               }
-
-              setState(() => _isLoading = true);
+              setState(() => _loading = true);
               try {
-                final supabase = Supabase.instance.client;
-                final existing = await supabase.from('profiles').select().eq('phone_number', phone).maybeSingle();
-
-                String assignedUserId;
+                final sb = Supabase.instance.client;
+                final existing = await sb.from('profiles').select().eq('phone_number', p).maybeSingle();
+                if (existing != null && existing['is_banned'] == true) {
+                  if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const BannedScreen()));
+                  return;
+                }
+                String uid = existing != null ? existing['id'].toString() : 'USR_$p';
                 if (existing == null) {
-                  assignedUserId = 'USR_$phone';
                   final genId = "JL-${Random().nextInt(89999) + 10000}";
-                  
-                  await supabase.from('profiles').insert({
-                    'id': assignedUserId,
-                    'player_id': genId,
-                    'full_name': name,
-                    'phone_number': phone,
-                    'total_matches': 0,
-                    'matches_won': 0,
-                    'matches_lost': 0,
-                  });
-                  await supabase.from('wallet_accounts').insert({
-                    'user_id': assignedUserId,
-                    'balance': 50.0,
-                  });
-                } else {
-                  assignedUserId = existing['id'].toString();
+                  await sb.from('profiles').insert({'id': uid, 'player_id': genId, 'full_name': n, 'phone_number': p, 'total_matches': 0, 'matches_won': 0, 'is_banned': false});
+                  await sb.from('wallet_accounts').insert({'user_id': uid, 'balance': 50.0});
                 }
-
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.setString('user_phone', phone);
-                await prefs.setString('user_name', name);
-                await prefs.setString('user_id', assignedUserId);
-
-                if (mounted) {
-                  Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomeScreen(phone: phone, userId: assignedUserId, config: widget.config)));
-                }
+                final pr = await SharedPreferences.getInstance();
+                await pr.setString('user_phone', p);
+                await pr.setString('user_name', n);
+                await pr.setString('user_id', uid);
+                if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomeScreen(phone: p, userId: uid)));
               } catch (e) {
-                if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("লগইন ত্রুটি: $e")));
+                if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("ত্রুটি: $e")));
               } finally {
-                if (mounted) setState(() => _isLoading = false);
+                if (mounted) setState(() => _loading = false);
               }
             }
 
             @override
             Widget build(BuildContext context) {
               return Scaffold(
-                body: Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(colors: [Color(0xFF4A0A58), Color(0xFF1D0322)], begin: Alignment.topCenter, end: Alignment.bottomCenter),
-                  ),
-                  child: Center(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        children: [
-                          const Icon(Icons.casino, size: 75, color: Colors.amber),
-                          const SizedBox(height: 12),
-                          const Text("স্বাগতম জুমান লুডুতে!", style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white)),
-                          const Text("খেলুন এবং জিতে নিন আসল পুরস্কার", style: TextStyle(color: Colors.white70)),
-                          const SizedBox(height: 28),
-                          TextField(
-                            controller: _nameCtrl,
-                            style: const TextStyle(color: Colors.white),
-                            decoration: InputDecoration(hintText: "আপনার পূর্ণ নাম", filled: true, fillColor: const Color(0xFF3D0947), border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)), prefixIcon: const Icon(Icons.person, color: Colors.amber)),
-                          ),
-                          const SizedBox(height: 14),
-                          TextField(
-                            controller: _phoneCtrl,
-                            keyboardType: TextInputType.phone,
-                            style: const TextStyle(color: Colors.white),
-                            decoration: InputDecoration(hintText: "মোবাইল নম্বর (১১ ডিজিট)", filled: true, fillColor: const Color(0xFF3D0947), border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)), prefixIcon: const Icon(Icons.phone, color: Colors.amber)),
-                          ),
-                          const SizedBox(height: 24),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.amber.shade700, minimumSize: const Size(double.infinity, 50), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-                            onPressed: _isLoading ? null : _login,
-                            child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text("প্রবেশ করুন", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black)),
-                          ),
-                        ],
-                      ),
+                body: Center(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      children: [
+                        const Icon(Icons.casino, size: 75, color: Colors.amber),
+                        const SizedBox(height: 12),
+                        const Text("জুমান লুডুতে স্বাগতম!", style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white)),
+                        const SizedBox(height: 24),
+                        TextField(controller: _name, decoration: InputDecoration(hintText: "পূর্ণ নাম", filled: true, fillColor: const Color(0xFF3D0947), border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)))),
+                        const SizedBox(height: 14),
+                        TextField(controller: _phone, keyboardType: TextInputType.phone, decoration: InputDecoration(hintText: "মোবাইল নম্বর", filled: true, fillColor: const Color(0xFF3D0947), border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)))),
+                        const SizedBox(height: 24),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.amber, minimumSize: const Size(double.infinity, 50), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+                          onPressed: _loading ? null : _login,
+                          child: _loading ? const CircularProgressIndicator(color: Colors.black) : const Text("প্রবেশ করুন", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black)),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -345,11 +256,11 @@ jobs:
             }
           }
 
+          // ৩. সম্পূর্ণ লবি
           class HomeScreen extends StatefulWidget {
             final String phone;
             final String userId;
-            final Map<String, dynamic>? config;
-            const HomeScreen({super.key, required this.phone, required this.userId, this.config});
+            const HomeScreen({super.key, required this.phone, required this.userId});
             @override
             State<HomeScreen> createState() => _HomeScreenState();
           }
@@ -358,270 +269,45 @@ jobs:
             double _balance = 0.0;
             String _name = "খেলোয়াড়";
             String _playerId = "JL-1000";
-            int _totalMatches = 0;
-            int _matchesWon = 0;
-            int _level = 1;
-
-            late String _supportNumber;
-            late String _notice;
 
             @override
             void initState() {
               super.initState();
-              _supportNumber = widget.config?['support_number'] ?? '01774229222';
-              _notice = widget.config?['notice_text'] ?? 'জুমান লুডুতে স্বাগতম! নিয়মিত খেলুন এবং জিতে নিন আকর্ষণীয় পুরস্কার।';
-              _loadUserData();
+              _loadData();
             }
 
-            Future<void> _loadUserData() async {
+            Future<void> _loadData() async {
               try {
-                final supabase = Supabase.instance.client;
-                final profile = await supabase.from('profiles').select().eq('phone_number', widget.phone).maybeSingle();
-                
-                if (profile != null) {
-                  setState(() {
-                    _name = profile['full_name'] ?? "খেলোয়াড়";
-                    _playerId = profile['player_id'] ?? "JL-1000";
-                    _totalMatches = profile['total_matches'] ?? 0;
-                    _matchesWon = profile['matches_won'] ?? 0;
-                    _level = max(1, (_totalMatches ~/ 5) + 1);
-                  });
-
-                  final wallet = await supabase.from('wallet_accounts').select().eq('user_id', widget.userId).maybeSingle();
-                  if (wallet != null) {
-                    setState(() {
-                      _balance = double.parse((wallet['balance'] ?? 0.0).toString());
-                    });
+                final sb = Supabase.instance.client;
+                final p = await sb.from('profiles').select().eq('phone_number', widget.phone).maybeSingle();
+                if (p != null) {
+                  if (p['is_banned'] == true && mounted) {
+                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const BannedScreen()));
+                    return;
                   }
+                  setState(() {
+                    _name = p['full_name'] ?? "খেলোয়াড়";
+                    _playerId = p['player_id'] ?? "JL-1000";
+                  });
                 }
+                final w = await sb.from('wallet_accounts').select().eq('user_id', widget.userId).maybeSingle();
+                if (w != null) setState(() => _balance = double.parse((w['balance'] ?? 0.0).toString()));
               } catch (_) {}
             }
 
-            Future<void> _launchUrl(String url) async {
-              final uri = Uri.parse(url);
-              if (await canLaunchUrl(uri)) launchUrl(uri, mode: LaunchMode.externalApplication);
-            }
-
-            void _openWhatsApp() {
-              final codeNum = _supportNumber.startsWith('0') ? '88$_supportNumber' : _supportNumber;
-              final text = Uri.encodeComponent("হ্যালো Jumman Ludo Support, Player ID: $_playerId");
-              _launchUrl("https://wa.me/$codeNum?text=$text");
-            }
-
-            void _openTelegram() {
-              final codeNum = _supportNumber.startsWith('0') ? '88$_supportNumber' : _supportNumber;
-              _launchUrl("https://t.me/+$codeNum");
-            }
-
-            void _showSupportDialog() {
+            void _openAdmin() {
+              final pin = TextEditingController();
               showDialog(
                 context: context,
                 builder: (ctx) => AlertDialog(
                   backgroundColor: const Color(0xFF4A0A3A),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22), side: const BorderSide(color: Colors.amber, width: 2)),
-                  title: const Row(
-                    children: [
-                      Icon(Icons.headset_mic, color: Colors.greenAccent),
-                      SizedBox(width: 10),
-                      Text("২৪/৭ হেল্প ও সাপোর্ট", style: TextStyle(color: Colors.white, fontSize: 18)),
-                    ],
-                  ),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text("ডিপোজিট, উত্তোলন বা যেকোনো প্রয়োজনে সরাসরি মেসেজ দিন:", style: TextStyle(color: Colors.white70, fontSize: 13)),
-                      const SizedBox(height: 18),
-                      ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF25D366), foregroundColor: Colors.white, minimumSize: const Size(double.infinity, 50), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
-                        icon: const Icon(Icons.chat, size: 24),
-                        label: const Text("WhatsApp-এ চ্যাট করুন", style: TextStyle(fontWeight: FontWeight.bold)),
-                        onPressed: () {
-                          Navigator.pop(ctx);
-                          _openWhatsApp();
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0088CC), foregroundColor: Colors.white, minimumSize: const Size(double.infinity, 50), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
-                        icon: const Icon(Icons.send_rounded, size: 24),
-                        label: const Text("Telegram-এ মেসেজ দিন", style: TextStyle(fontWeight: FontWeight.bold)),
-                        onPressed: () {
-                          Navigator.pop(ctx);
-                          _openTelegram();
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }
-
-            void _showSettingsDialog() {
-              showDialog(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  backgroundColor: const Color(0xFF4A0A3A),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: Colors.amber)),
-                  title: const Row(
-                    children: [
-                      Icon(Icons.settings, color: Colors.amber),
-                      SizedBox(width: 8),
-                      Text("গেম সেটিংস", style: TextStyle(color: Colors.white)),
-                    ],
-                  ),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      ListTile(
-                        leading: const Icon(Icons.volume_up, color: Colors.white),
-                        title: const Text("সাউন্ড ও মিউজিক"),
-                        trailing: Switch(value: true, onChanged: (v) {}, activeColor: Colors.amber),
-                      ),
-                      ListTile(
-                        leading: const Icon(Icons.vibration, color: Colors.white),
-                        title: const Text("ভাইব্রেশন"),
-                        trailing: Switch(value: true, onChanged: (v) {}, activeColor: Colors.amber),
-                      ),
-                      const Divider(color: Colors.white24),
-                      ListTile(
-                        leading: const Icon(Icons.logout, color: Colors.redAccent),
-                        title: const Text("লগআউট করুন", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
-                        onTap: () async {
-                          final prefs = await SharedPreferences.getInstance();
-                          await prefs.clear();
-                          if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => LoginScreen(config: widget.config)));
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }
-
-            void _showProfileModal() {
-              final winRate = _totalMatches > 0 ? ((_matchesWon / _totalMatches) * 100).toInt() : 0;
-              showDialog(
-                context: context,
-                builder: (ctx) => Dialog(
-                  backgroundColor: Colors.transparent,
-                  insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(colors: [Color(0xFF8B125D), Color(0xFF4A0A3A)], begin: Alignment.topCenter, end: Alignment.bottomCenter),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: const Color(0xFFFFD700), width: 3),
-                      boxShadow: const [BoxShadow(color: Colors.black87, blurRadius: 20)],
-                    ),
-                    child: Stack(
-                      children: [
-                        Positioned(
-                          right: 8,
-                          top: 8,
-                          child: GestureDetector(
-                            onTap: () => Navigator.pop(ctx),
-                            child: Container(decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.red), padding: const EdgeInsets.all(4), child: const Icon(Icons.close, color: Colors.white, size: 20)),
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    width: 70,
-                                    height: 70,
-                                    decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.amber, width: 3), color: Colors.amber.shade100),
-                                    child: Center(child: Text(_name.isNotEmpty ? _name[0].toUpperCase() : 'P', style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Color(0xFF4A0A3A)))),
-                                  ),
-                                  const SizedBox(width: 14),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(_name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
-                                      const SizedBox(height: 4),
-                                      const Row(
-                                        children: [
-                                          Text("🇧🇩 ", style: TextStyle(fontSize: 16)),
-                                          Text("BANGLADESH", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(color: const Color(0xFF280222), borderRadius: BorderRadius.circular(16)),
-                                child: Column(
-                                  children: [
-                                    _buildStatRow("Player ID", _playerId, "Current Balance", "৳ ${_balance.toStringAsFixed(0)}"),
-                                    const SizedBox(height: 8),
-                                    _buildStatRow("Level", "$_level", "League", _level > 5 ? "Silver 🛡️" : "Bronze 🥉"),
-                                    const Divider(color: Colors.white24, height: 18),
-                                    _buildStatRow("Games won", "$_matchesWon of $_totalMatches", "Win Rate", "$winRate %"),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            }
-
-            Widget _buildStatRow(String k1, String v1, String k2, String v2) {
-              return Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(k1, style: const TextStyle(color: Colors.white54, fontSize: 11)),
-                        Text(v1, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(k2, style: const TextStyle(color: Colors.white54, fontSize: 11)),
-                        Text(v2, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                      ],
-                    ),
-                  ),
-                ],
-              );
-            }
-
-            void _promptAdminPin() {
-              final pinCtrl = TextEditingController();
-              showDialog(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  backgroundColor: const Color(0xFF4A0A3A),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  title: const Text("অ্যাডমিন সিক্রেট পিন", style: TextStyle(color: Colors.amber)),
-                  content: TextField(
-                    controller: pinCtrl,
-                    keyboardType: TextInputType.number,
-                    obscureText: true,
-                    maxLength: 4,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 8, color: Colors.white),
-                    decoration: const InputDecoration(hintText: "••••", filled: true, fillColor: Color(0xFF280222)),
-                  ),
+                  title: const Text("অ্যাডমিন পিন", style: TextStyle(color: Colors.amber)),
+                  content: TextField(controller: pin, keyboardType: TextInputType.number, obscureText: true, maxLength: 4, textAlign: TextAlign.center, style: const TextStyle(fontSize: 24, letterSpacing: 8)),
                   actions: [
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(backgroundColor: Colors.amber),
                       onPressed: () {
-                        if (pinCtrl.text.trim() == masterAdminPin) {
+                        if (pin.text.trim() == masterAdminPin) {
                           Navigator.pop(ctx);
                           Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminScreen()));
                         } else {
@@ -645,28 +331,21 @@ jobs:
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         child: Row(
                           children: [
-                            GestureDetector(
-                              onTap: _showProfileModal,
-                              child: Container(
-                                padding: const EdgeInsets.all(2),
-                                decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.amber, width: 2)),
-                                child: CircleAvatar(radius: 18, backgroundColor: Colors.amberAccent, child: Text(_name.isNotEmpty ? _name[0].toUpperCase() : 'P', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold))),
-                              ),
-                            ),
+                            CircleAvatar(backgroundColor: Colors.amber, child: Text(_name.isNotEmpty ? _name[0].toUpperCase() : 'P', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold))),
                             const SizedBox(width: 8),
                             GestureDetector(
                               onTap: () async {
-                                await Navigator.push(context, MaterialPageRoute(builder: (_) => WalletScreen(phone: widget.phone, userId: widget.userId, balance: _balance, supportNumber: _supportNumber)));
-                                _loadUserData();
+                                await Navigator.push(context, MaterialPageRoute(builder: (_) => WalletScreen(phone: widget.phone, userId: widget.userId, balance: _balance)));
+                                _loadData();
                               },
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(color: const Color(0xFF1D0322), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.amber)),
+                                decoration: BoxDecoration(color: const Color(0xFF35042D), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.amber)),
                                 child: Row(
                                   children: [
                                     const Icon(Icons.monetization_on, color: Colors.amber, size: 18),
                                     const SizedBox(width: 4),
-                                    Text("৳ ${_balance.toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13)),
+                                    Text("৳ ${_balance.toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.bold)),
                                     const SizedBox(width: 4),
                                     const Icon(Icons.add_circle, color: Colors.greenAccent, size: 16),
                                   ],
@@ -674,21 +353,14 @@ jobs:
                               ),
                             ),
                             const Spacer(),
-                            IconButton(icon: const Icon(Icons.headset_mic, color: Colors.greenAccent), tooltip: "সাপোর্ট", onPressed: _showSupportDialog),
-                            IconButton(icon: const Icon(Icons.security, color: Colors.amber), tooltip: "অ্যাডমিন", onPressed: _promptAdminPin),
-                            IconButton(icon: const Icon(Icons.settings, color: Colors.white), tooltip: "সেটিংস", onPressed: _showSettingsDialog),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        color: const Color(0xFF35042D),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.campaign, color: Colors.amber, size: 18),
-                            const SizedBox(width: 8),
-                            Expanded(child: Text(_notice, style: const TextStyle(color: Colors.white70, fontSize: 12), overflow: TextOverflow.ellipsis)),
+                            IconButton(
+                              icon: const Icon(Icons.headset_mic, color: Colors.greenAccent),
+                              onPressed: () async {
+                                final uri = Uri.parse("https://wa.me/8801774229222");
+                                if (await canLaunchUrl(uri)) launchUrl(uri, mode: LaunchMode.externalApplication);
+                              },
+                            ),
+                            IconButton(icon: const Icon(Icons.security, color: Colors.amber), onPressed: _openAdmin),
                           ],
                         ),
                       ),
@@ -696,83 +368,11 @@ jobs:
                         child: ListView(
                           padding: const EdgeInsets.all(14),
                           children: [
-                            Container(
-                              padding: const EdgeInsets.all(14),
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(colors: [Color(0xFFE91E63), Color(0xFFFF9800)]),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: Colors.amberAccent),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.card_giftcard, size: 40, color: Colors.white),
-                                  const SizedBox(width: 12),
-                                  const Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text("দৈনিক রিওয়ার্ড ও বোনাস!", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-                                        Text("প্রতিদিন ফ্রি কয়েন সংগ্রহ করুন", style: TextStyle(fontSize: 12, color: Colors.white70)),
-                                      ],
-                                    ),
-                                  ),
-                                  ElevatedButton(
-                                    style: ElevatedButton.styleFrom(backgroundColor: Colors.amber, foregroundColor: Colors.black),
-                                    onPressed: () {
-                                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("আজকের রিওয়ার্ড সংগৃহীত হয়েছে!")));
-                                    },
-                                    child: const Text("ক্লেইম", style: TextStyle(fontWeight: FontWeight.bold)),
-                                  )
-                                ],
-                              ),
-                            ),
+                            _buildModeCard("2 Player Battle", "ক্লাসিক ব্যাটল (৳২০)", Colors.orange, 20.0),
                             const SizedBox(height: 14),
-                            _buildBigModeCard("2 Player Battle", "ক্লাসিক ব্যাটল (৳২০)", "2", const [Color(0xFFFF8C00), Color(0xFFFF512F)], 20.0),
+                            _buildModeCard("4 Player Royal", "রয়্যাল ধামাকা (৳৫০)", Colors.purple, 50.0),
                             const SizedBox(height: 14),
-                            _buildBigModeCard("4 Player Royal", "রয়্যাল ধামাকা (৳৫০)", "4", const [Color(0xFF8A2387), Color(0xFFE94057)], 50.0),
-                            const SizedBox(height: 14),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _buildSmallFeatureCard(
-                                    title: "Private Table",
-                                    desc: "বন্ধুদের কোড দিয়ে খেলুন",
-                                    icon: Icons.lock_open,
-                                    color: Colors.blueAccent,
-                                    onTap: () => _startMatch(20.0),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: _buildSmallFeatureCard(
-                                    title: "Pass N Play",
-                                    desc: "এক ফোনে একসাথে খেলুন",
-                                    icon: Icons.phone_android,
-                                    color: Colors.greenAccent,
-                                    onTap: () => _startMatch(0.0),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(vertical: 6),
-                        decoration: const BoxDecoration(color: Color(0xFF19011F), border: Border(top: BorderSide(color: Colors.white12))),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            IconButton(icon: const Icon(Icons.account_balance_wallet, color: Colors.amber, size: 28), onPressed: () async {
-                              await Navigator.push(context, MaterialPageRoute(builder: (_) => WalletScreen(phone: widget.phone, userId: widget.userId, balance: _balance, supportNumber: _supportNumber)));
-                              _loadUserData();
-                            }),
-                            Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.amber),
-                              child: const Icon(Icons.home, color: Color(0xFF2C0438), size: 28),
-                            ),
-                            IconButton(icon: const Icon(Icons.chat_bubble_outline, color: Colors.greenAccent, size: 28), onPressed: _showSupportDialog),
+                            _buildModeCard("Pass N Play", "এক ফোনেই খেলুন (ফ্রি)", Colors.teal, 0.0),
                           ],
                         ),
                       ),
@@ -782,128 +382,79 @@ jobs:
               );
             }
 
-            Widget _buildBigModeCard(String title, String sub, String num, List<Color> colors, double fee) {
+            Widget _buildModeCard(String title, String sub, Color color, double fee) {
               return GestureDetector(
-                onTap: () => _startMatch(fee),
+                onTap: () async {
+                  if (fee > 0 && _balance < fee) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("পর্যাপ্ত ব্যালেন্স নেই!")));
+                    return;
+                  }
+                  await Navigator.push(context, MaterialPageRoute(builder: (_) => LudoGameScreen(entryFee: fee, userId: widget.userId, playerName: _name)));
+                  _loadData();
+                },
                 child: Container(
-                  height: 120,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(colors: colors),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.amber, width: 2),
-                    boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 10, offset: Offset(0, 4))],
-                  ),
-                  child: Stack(
+                  height: 110,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(18), border: Border.all(color: Colors.amber, width: 2)),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Positioned(
-                        right: 18,
-                        top: 15,
-                        child: Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(0.2)),
-                          child: Center(child: Text(num, style: const TextStyle(fontSize: 52, fontWeight: FontWeight.w900, color: Colors.white))),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
-                            const SizedBox(height: 4),
-                            Text(sub, style: const TextStyle(fontSize: 13, color: Colors.white70, fontWeight: FontWeight.w600)),
-                            const SizedBox(height: 8),
-                            Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4), decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(12)), child: const Text("খেলুন ▶", style: TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold))),
-                          ],
-                        ),
-                      ),
+                      Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
+                        Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+                        Text(sub, style: const TextStyle(fontSize: 13, color: Colors.white70)),
+                      ]),
+                      const Icon(Icons.play_circle_fill, size: 45, color: Colors.amberAccent),
                     ],
                   ),
                 ),
               );
-            }
-
-            Widget _buildSmallFeatureCard({required String title, required String desc, required IconData icon, required Color color, required VoidCallback onTap}) {
-              return GestureDetector(
-                onTap: onTap,
-                child: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(color: const Color(0xFF35042D), borderRadius: BorderRadius.circular(16), border: Border.all(color: color.withOpacity(0.5), width: 1.5)),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(icon, color: color, size: 30),
-                      const SizedBox(height: 8),
-                      Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
-                      Text(desc, style: const TextStyle(fontSize: 11, color: Colors.white54)),
-                    ],
-                  ),
-                ),
-              );
-            }
-
-            void _startMatch(double fee) async {
-              if (fee > 0 && _balance < fee) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("পর্যাপ্ত ব্যালেন্স নেই! ওয়ালেটে টাকা জমা দিন।")));
-                return;
-              }
-              await Navigator.push(context, MaterialPageRoute(builder: (_) => RealLudoEngineScreen(entryFee: fee, userId: widget.userId, phone: widget.phone, playerName: _name)));
-              _loadUserData();
             }
           }
 
+          // ৪. ওয়ালেট স্ক্রিন (মিনিমাম ৩০০ ও নম্বর কপি সহ)
           class WalletScreen extends StatefulWidget {
             final String phone;
             final String userId;
             final double balance;
-            final String supportNumber;
-            const WalletScreen({super.key, required this.phone, required this.userId, required this.balance, required this.supportNumber});
+            const WalletScreen({super.key, required this.phone, required this.userId, required this.balance});
             @override
             State<WalletScreen> createState() => _WalletScreenState();
           }
 
           class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderStateMixin {
-            late TabController _tabCtrl;
+            late TabController _tab;
             final _depAmt = TextEditingController();
-            final _senderPhone = TextEditingController();
             final _trxId = TextEditingController();
-            String _depMethod = 'BKASH';
-
             final _withAmt = TextEditingController();
             final _withPhone = TextEditingController();
-            String _withMethod = 'BKASH';
             bool _loading = false;
 
             @override
             void initState() {
               super.initState();
-              _tabCtrl = TabController(length: 2, vsync: this);
-              _senderPhone.text = widget.phone;
+              _tab = TabController(length: 2, vsync: this);
               _withPhone.text = widget.phone;
             }
 
             Future<void> _submitDep() async {
-              final amt = double.tryParse(_depAmt.text) ?? 0;
-              final trx = _trxId.text.trim();
-              if (amt < 10 || trx.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("সঠিক পরিমাণ ও TrxID দিন")));
+              final a = double.tryParse(_depAmt.text) ?? 0;
+              final t = _trxId.text.trim();
+              if (a < 10 || t.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("সঠিক তথ্য দিন")));
                 return;
               }
               setState(() => _loading = true);
               try {
-                final supabase = Supabase.instance.client;
-                await supabase.from('deposit_requests').insert({
+                await Supabase.instance.client.from('deposit_requests').insert({
                   'user_id': widget.userId,
-                  'amount': amt,
-                  'payment_method': _depMethod,
-                  'sender_number': _senderPhone.text,
-                  'trx_id': trx,
+                  'amount': a,
+                  'payment_method': 'BKASH',
+                  'sender_number': widget.phone,
+                  'trx_id': t,
                   'status': 'PENDING',
                 });
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ডিপোজিট অনুরোধ সফলভাবে পাঠানো হয়েছে!")));
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("অনুরোধ সফল হয়েছে!")));
                   Navigator.pop(context);
                 }
               } catch (e) {
@@ -914,23 +465,22 @@ jobs:
             }
 
             Future<void> _submitWith() async {
-              final amt = double.tryParse(_withAmt.text) ?? 0;
-              if (amt < 50 || amt > widget.balance) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("সর্বনিম্ন ৫০ টাকা এবং ব্যালেন্সের সমান বা কম হতে হবে")));
+              final a = double.tryParse(_withAmt.text) ?? 0;
+              if (a < 300 || a > widget.balance) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("সর্বনিম্ন উত্তোলন ৩০০ টাকা এবং ব্যালেন্সের সমান বা কম হতে হবে!")));
                 return;
               }
               setState(() => _loading = true);
               try {
-                final supabase = Supabase.instance.client;
-                await supabase.from('withdrawal_requests').insert({
+                await Supabase.instance.client.from('withdrawal_requests').insert({
                   'user_id': widget.userId,
-                  'amount': amt,
-                  'payment_method': _withMethod,
+                  'amount': a,
+                  'payment_method': 'BKASH',
                   'receiver_number': _withPhone.text,
                   'status': 'PENDING',
                 });
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("উত্তোলন অনুরোধ সফলভাবে পাঠানো হয়েছে!")));
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("উত্তোলন অনুরোধ সফল হয়েছে!")));
                   Navigator.pop(context);
                 }
               } catch (e) {
@@ -943,63 +493,47 @@ jobs:
             @override
             Widget build(BuildContext context) {
               return Scaffold(
-                appBar: AppBar(
-                  title: const Text("ওয়ালেট ও লেনদেন"),
-                  backgroundColor: const Color(0xFF4A0A3A),
-                  bottom: TabBar(controller: _tabCtrl, indicatorColor: Colors.amber, tabs: const [Tab(text: "টাকা জমা"), Tab(text: "উত্তোলন")]),
-                ),
+                appBar: AppBar(title: const Text("ওয়ালেট"), backgroundColor: const Color(0xFF4A0A3A), bottom: TabBar(controller: _tab, tabs: const [Tab(text: "জমা"), Tab(text: "উত্তোলন")])),
                 body: TabBarView(
-                  controller: _tabCtrl,
+                  controller: _tab,
                   children: [
-                    SingleChildScrollView(
+                    Padding(
                       padding: const EdgeInsets.all(16),
                       child: Column(
                         children: [
                           Container(
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(color: const Color(0xFF35042D), borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.amber)),
-                            child: Column(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(color: const Color(0xFF35042D), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.amber)),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text("Send Money নম্বর (বিকাশ / নগদ পার্সোনাল):", style: TextStyle(color: Colors.white70)),
-                                const SizedBox(height: 4),
-                                Text(widget.supportNumber, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.amber)),
+                                const Text("বিকাশ/নগদ: 01774229222", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.amber)),
+                                IconButton(
+                                  icon: const Icon(Icons.copy, color: Colors.amberAccent),
+                                  onPressed: () {
+                                    Clipboard.setData(const ClipboardData(text: "01774229222"));
+                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("নম্বর কপি হয়েছে!"), duration: Duration(seconds: 1)));
+                                  },
+                                ),
                               ],
                             ),
                           ),
-                          const SizedBox(height: 16),
-                          DropdownButtonFormField<String>(
-                            value: _depMethod,
-                            dropdownColor: const Color(0xFF35042D),
-                            decoration: const InputDecoration(labelText: "পেমেন্ট মেথড", filled: true, fillColor: Color(0xFF35042D)),
-                            items: const [DropdownMenuItem(value: 'BKASH', child: Text("বিকাশ")), DropdownMenuItem(value: 'NAGAD', child: Text("নগদ"))],
-                            onChanged: (v) => setState(() => _depMethod = v!),
-                          ),
-                          const SizedBox(height: 10),
-                          TextField(controller: _depAmt, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "টাকার পরিমাণ", filled: true, fillColor: Color(0xFF35042D))),
-                          const SizedBox(height: 10),
-                          TextField(controller: _trxId, decoration: const InputDecoration(labelText: "Transaction ID (TrxID)", filled: true, fillColor: Color(0xFF35042D))),
+                          const SizedBox(height: 14),
+                          TextField(controller: _depAmt, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "টাকার পরিমাণ")),
+                          TextField(controller: _trxId, decoration: const InputDecoration(labelText: "TrxID")),
                           const SizedBox(height: 20),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.amber, minimumSize: const Size(double.infinity, 48)),
-                            onPressed: _loading ? null : _submitDep,
-                            child: const Text("জমা অনুরোধ পাঠান", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-                          ),
+                          ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.amber, minimumSize: const Size(double.infinity, 45)), onPressed: _loading ? null : _submitDep, child: const Text("জমা দিন", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold))),
                         ],
                       ),
                     ),
-                    SingleChildScrollView(
+                    Padding(
                       padding: const EdgeInsets.all(16),
                       child: Column(
                         children: [
-                          TextField(controller: _withAmt, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "উত্তোলনের পরিমাণ", filled: true, fillColor: Color(0xFF35042D))),
-                          const SizedBox(height: 10),
-                          TextField(controller: _withPhone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: "বিকাশ/নগদ নম্বর", filled: true, fillColor: Color(0xFF35042D))),
+                          TextField(controller: _withAmt, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "পরিমাণ (মিনিমাম ৳৩০০)")),
+                          TextField(controller: _withPhone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: "বিকাশ নম্বর")),
                           const SizedBox(height: 20),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.greenAccent, minimumSize: const Size(double.infinity, 48)),
-                            onPressed: _loading ? null : _submitWith,
-                            child: const Text("উত্তোলন করুন", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-                          ),
+                          ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.green, minimumSize: const Size(double.infinity, 45)), onPressed: _loading ? null : _submitWith, child: const Text("উত্তোলন করুন", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
                         ],
                       ),
                     ),
@@ -1009,6 +543,7 @@ jobs:
             }
           }
 
+          // ৫. অ্যাডমিন স্ক্রিন (খেলোয়াড় ব্লক ও ব্যালেন্স কন্ট্রোল সহ)
           class AdminScreen extends StatefulWidget {
             const AdminScreen({super.key});
             @override
@@ -1016,68 +551,91 @@ jobs:
           }
 
           class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStateMixin {
-            late TabController _adminTabCtrl;
+            late TabController _tab;
+            String _search = "";
 
             @override
             void initState() {
               super.initState();
-              _adminTabCtrl = TabController(length: 3, vsync: this);
+              _tab = TabController(length: 3, vsync: this);
+            }
+
+            void _editPlayer(Map<String, dynamic> p) {
+              final balCtrl = TextEditingController();
+              bool banned = p['is_banned'] ?? false;
+              showDialog(
+                context: context,
+                builder: (ctx) => StatefulBuilder(
+                  builder: (context, setD) {
+                    return AlertDialog(
+                      backgroundColor: const Color(0xFF35042D),
+                      title: Text("${p['full_name']} (কন্ট্রোল)", style: const TextStyle(color: Colors.amber)),
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text("ফোন: ${p['phone_number']}"),
+                          const SizedBox(height: 10),
+                          TextField(controller: balCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "ব্যালেন্স যোগ/বিয়োগ")),
+                          const SizedBox(height: 14),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(backgroundColor: banned ? Colors.green : Colors.red),
+                            onPressed: () async {
+                              bool next = !banned;
+                              await Supabase.instance.client.from('profiles').update({'is_banned': next}).eq('id', p['id']);
+                              setD(() => banned = next);
+                            },
+                            child: Text(banned ? "আনব্লক করুন" : "ব্লক করুন", style: const TextStyle(color: Colors.white)),
+                          )
+                        ],
+                      ),
+                      actions: [
+                        ElevatedButton(
+                          onPressed: () async {
+                            double change = double.tryParse(balCtrl.text) ?? 0;
+                            if (change != 0) {
+                              final w = await Supabase.instance.client.from('wallet_accounts').select().eq('user_id', p['id']).maybeSingle();
+                              if (w != null) {
+                                double cur = double.parse((w['balance'] ?? 0.0).toString());
+                                await Supabase.instance.client.from('wallet_accounts').update({'balance': cur + change}).eq('user_id', p['id']);
+                              }
+                            }
+                            Navigator.pop(ctx);
+                          },
+                          child: const Text("সংরক্ষণ"),
+                        )
+                      ],
+                    );
+                  },
+                ),
+              );
             }
 
             @override
             Widget build(BuildContext context) {
-              final supabase = Supabase.instance.client;
+              final sb = Supabase.instance.client;
               return Scaffold(
-                appBar: AppBar(
-                  title: const Text("অ্যাডমিন কন্ট্রোল"),
-                  backgroundColor: const Color(0xFF4A0A3A),
-                  bottom: TabBar(
-                    controller: _adminTabCtrl,
-                    indicatorColor: Colors.amber,
-                    tabs: const [Tab(text: "জমা"), Tab(text: "উত্তোলন"), Tab(text: "খেলোয়াড়")],
-                  ),
-                ),
+                appBar: AppBar(title: const Text("অ্যাডমিন কন্ট্রোল"), backgroundColor: const Color(0xFF4A0A3A), bottom: TabBar(controller: _tab, tabs: const [Tab(text: "জমা"), Tab(text: "উত্তোলন"), Tab(text: "খেলোয়াড়")])),
                 body: TabBarView(
-                  controller: _adminTabCtrl,
+                  controller: _tab,
                   children: [
                     StreamBuilder<List<Map<String, dynamic>>>(
-                      stream: supabase.from('deposit_requests').stream(primaryKey: ['id']).eq('status', 'PENDING'),
-                      builder: (context, snapshot) {
-                        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                        final list = snapshot.data!;
-                        if (list.isEmpty) return const Center(child: Text("কোনো পেন্ডিং জমা অনুরোধ নেই!"));
-
+                      stream: sb.from('deposit_requests').stream(primaryKey: ['id']).eq('status', 'PENDING'),
+                      builder: (ctx, s) {
+                        if (!s.hasData) return const Center(child: CircularProgressIndicator());
+                        final list = s.data!;
+                        if (list.isEmpty) return const Center(child: Text("কোনো জমা নেই"));
                         return ListView.builder(
                           itemCount: list.length,
-                          itemBuilder: (context, i) {
-                            final req = list[i];
+                          itemBuilder: (ctx, i) {
+                            final r = list[i];
                             return Card(
                               color: const Color(0xFF35042D),
-                              margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Colors.amber)),
                               child: ListTile(
-                                title: Text("৳${req['amount']} (${req['payment_method']})", style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold)),
-                                subtitle: Text("প্রেরক: ${req['sender_number']}\nTrxID: ${req['trx_id']}"),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    IconButton(
-                                      icon: const Icon(Icons.check_circle, color: Colors.greenAccent, size: 30),
-                                      onPressed: () async {
-                                        await supabase.rpc('approve_deposit_transaction', params: {
-                                          'p_req_id': req['id'],
-                                          'p_user_id': req['user_id'].toString(),
-                                          'p_amount': req['amount'],
-                                        });
-                                      },
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.cancel, color: Colors.redAccent, size: 30),
-                                      onPressed: () async {
-                                        await supabase.from('deposit_requests').update({'status': 'REJECTED'}).eq('id', req['id']);
-                                      },
-                                    ),
-                                  ],
+                                title: Text("৳${r['amount']} (${r['sender_number']})"),
+                                subtitle: Text("Trx: ${r['trx_id']}"),
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.check, color: Colors.green),
+                                  onPressed: () => sb.rpc('approve_deposit_transaction', params: {'p_req_id': r['id'], 'p_user_id': r['user_id'].toString(), 'p_amount': r['amount']}),
                                 ),
                               ),
                             );
@@ -1086,43 +644,22 @@ jobs:
                       },
                     ),
                     StreamBuilder<List<Map<String, dynamic>>>(
-                      stream: supabase.from('withdrawal_requests').stream(primaryKey: ['id']).eq('status', 'PENDING'),
-                      builder: (context, snapshot) {
-                        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                        final list = snapshot.data!;
-                        if (list.isEmpty) return const Center(child: Text("কোনো পেন্ডিং উত্তোলন অনুরোধ নেই!"));
-
+                      stream: sb.from('withdrawal_requests').stream(primaryKey: ['id']).eq('status', 'PENDING'),
+                      builder: (ctx, s) {
+                        if (!s.hasData) return const Center(child: CircularProgressIndicator());
+                        final list = s.data!;
+                        if (list.isEmpty) return const Center(child: Text("কোনো উত্তোলন নেই"));
                         return ListView.builder(
                           itemCount: list.length,
-                          itemBuilder: (context, i) {
-                            final req = list[i];
+                          itemBuilder: (ctx, i) {
+                            final r = list[i];
                             return Card(
                               color: const Color(0xFF35042D),
-                              margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Colors.blueAccent)),
                               child: ListTile(
-                                title: Text("টাকা: ৳${req['amount']}", style: const TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold, fontSize: 16)),
-                                subtitle: Text("নম্বর: ${req['receiver_number']}"),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    IconButton(
-                                      icon: const Icon(Icons.check_circle, color: Colors.greenAccent, size: 30),
-                                      onPressed: () async {
-                                        await supabase.rpc('approve_withdrawal_transaction', params: {
-                                          'p_req_id': req['id'],
-                                          'p_user_id': req['user_id'].toString(),
-                                          'p_amount': req['amount'],
-                                        });
-                                      },
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.cancel, color: Colors.redAccent, size: 30),
-                                      onPressed: () async {
-                                        await supabase.from('withdrawal_requests').update({'status': 'REJECTED'}).eq('id', req['id']);
-                                      },
-                                    ),
-                                  ],
+                                title: Text("৳${r['amount']} (${r['receiver_number']})"),
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.check, color: Colors.green),
+                                  onPressed: () => sb.rpc('approve_withdrawal_transaction', params: {'p_req_id': r['id'], 'p_user_id': r['user_id'].toString(), 'p_amount': r['amount']}),
                                 ),
                               ),
                             );
@@ -1130,27 +667,37 @@ jobs:
                         );
                       },
                     ),
-                    StreamBuilder<List<Map<String, dynamic>>>(
-                      stream: supabase.from('profiles').stream(primaryKey: ['id']),
-                      builder: (context, snapshot) {
-                        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                        final players = snapshot.data!;
-                        return ListView.builder(
-                          itemCount: players.length,
-                          itemBuilder: (context, i) {
-                            final p = players[i];
-                            return Card(
-                              color: const Color(0xFF35042D),
-                              margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                              child: ListTile(
-                                leading: CircleAvatar(backgroundColor: Colors.amber, child: Text(p['full_name'] != null && p['full_name'].toString().isNotEmpty ? p['full_name'][0] : 'P', style: const TextStyle(color: Colors.black))),
-                                title: Text("${p['full_name']} (${p['player_id']})", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-                                subtitle: Text("ফোন: ${p['phone_number']} | ম্যাচ: ${p['total_matches'] ?? 0} | জয়: ${p['matches_won'] ?? 0}", style: const TextStyle(color: Colors.white70)),
-                              ),
-                            );
-                          },
-                        );
-                      },
+                    Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: TextField(onChanged: (v) => setState(() => _search = v.trim().toLowerCase()), decoration: const InputDecoration(hintText: "সার্চ করুন...")),
+                        ),
+                        Expanded(
+                          child: StreamBuilder<List<Map<String, dynamic>>>(
+                            stream: sb.from('profiles').stream(primaryKey: ['id']),
+                            builder: (ctx, s) {
+                              if (!s.hasData) return const Center(child: CircularProgressIndicator());
+                              final list = s.data!.where((p) => (p['phone_number'] ?? '').toString().contains(_search) || (p['full_name'] ?? '').toString().toLowerCase().contains(_search)).toList();
+                              return ListView.builder(
+                                itemCount: list.length,
+                                itemBuilder: (ctx, i) {
+                                  final p = list[i];
+                                  final bool banned = p['is_banned'] ?? false;
+                                  return Card(
+                                    color: const Color(0xFF35042D),
+                                    child: ListTile(
+                                      title: Text("${p['full_name']} ${banned ? '(ব্লকড)' : ''}", style: TextStyle(color: banned ? Colors.red : Colors.white)),
+                                      subtitle: Text("${p['phone_number']}"),
+                                      trailing: ElevatedButton(onPressed: () => _editPlayer(p), child: const Text("কন্ট্রোল")),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -1158,41 +705,42 @@ jobs:
             }
           }
 
-          class RealLudoEngineScreen extends StatefulWidget {
+          // ৬. পূর্ণাঙ্গ লুডু গেম ইঞ্জিন (ধাপে ধাপে লাফানো, সঠিক কাটা ও ১৫ সেকেন্ড টাইমার)
+          class LudoGameScreen extends StatefulWidget {
             final double entryFee;
             final String userId;
-            final String phone;
             final String playerName;
-            const RealLudoEngineScreen({super.key, required this.entryFee, required this.userId, required this.phone, required this.playerName});
+            const LudoGameScreen({super.key, required this.entryFee, required this.userId, required this.playerName});
 
             @override
-            State<RealLudoEngineScreen> createState() => _RealLudoEngineScreenState();
+            State<LudoGameScreen> createState() => _LudoGameScreenState();
           }
 
-          class _RealLudoEngineScreenState extends State<RealLudoEngineScreen> with TickerProviderStateMixin {
-            int _playerDice = 1;
-            int _opponentDice = 1;
-            int _displayPlayerDice = 1;
-            int _displayOpponentDice = 1;
+          class _LudoGameScreenState extends State<LudoGameScreen> with TickerProviderStateMixin {
+            int _pDice = 1;
+            int _oDice = 1;
+            int _dispPDice = 1;
+            int _dispODice = 1;
 
-            bool _isPlayerRolling = false;
-            bool _isOpponentRolling = false;
-            bool _waitingForPawnTap = false;
-            int _turn = 0; // 0 = Player (Yellow), 1 = Opponent (Red)
-            List<int> _movablePawns = [];
+            bool _pRolling = false;
+            bool _waitingTap = false;
+            bool _moving = false;
+            int _turn = 0; // 0: Player (Yellow), 1: Opponent (Red)
+            List<int> _movable = [];
 
-            List<int> yellowPawns = [-1, -1, -1, -1];
-            List<int> redPawns = [-1, -1, -1, -1];
+            List<int> yPawns = [-1, -1, -1, -1];
+            List<int> rPawns = [-1, -1, -1, -1];
 
-            final Set<int> safeGlobalTiles = {0, 8, 13, 21, 26, 34, 39, 47};
+            final Set<int> safe = {1, 9, 14, 22, 27, 35, 40, 48};
+            Timer? _timer;
+            int _sec = 15;
 
-            late AnimationController _glowCtrl;
-            late AnimationController _playerDiceRotCtrl;
-            late AnimationController _opponentDiceRotCtrl;
+            late AnimationController _glow;
+            late AnimationController _pRot;
+            late AnimationController _oRot;
+            String _status = "👉 আপনার চাল! ছক্কায় ট্যাপ করুন";
 
-            String _turnStatus = "👉 আপনার চাল! ছক্কায় ট্যাপ করুন";
-
-            static const List<Point<int>> trackPoints = [
+            static const List<Point<int>> track = [
               Point(8, 0), Point(8, 1), Point(8, 2), Point(8, 3), Point(8, 4), Point(8, 5),
               Point(9, 6), Point(10, 6), Point(11, 6), Point(12, 6), Point(13, 6), Point(14, 6),
               Point(14, 7),
@@ -1210,136 +758,137 @@ jobs:
             @override
             void initState() {
               super.initState();
-              _deductEntryFee();
-              _glowCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 600))..repeat(reverse: true);
-              _playerDiceRotCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 550));
-              _opponentDiceRotCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 550));
+              _glow = AnimationController(vsync: this, duration: const Duration(milliseconds: 550))..repeat(reverse: true);
+              _pRot = AnimationController(vsync: this, duration: const Duration(milliseconds: 550));
+              _oRot = AnimationController(vsync: this, duration: const Duration(milliseconds: 550));
+              _startTimer();
             }
 
             @override
             void dispose() {
-              _glowCtrl.dispose();
-              _playerDiceRotCtrl.dispose();
-              _opponentDiceRotCtrl.dispose();
+              _timer?.cancel();
+              _glow.dispose();
+              _pRot.dispose();
+              _oRot.dispose();
               super.dispose();
             }
 
-            Future<void> _deductEntryFee() async {
-              if (widget.entryFee <= 0) return;
-              try {
-                final supabase = Supabase.instance.client;
-                final wallet = await supabase.from('wallet_accounts').select().eq('user_id', widget.userId).single();
-                double cur = double.parse((wallet['balance'] ?? 0.0).toString());
-                await supabase.from('wallet_accounts').update({'balance': cur - widget.entryFee}).eq('user_id', widget.userId);
-              } catch (_) {}
-            }
-
-            Future<void> _recordWin() async {
-              try {
-                final supabase = Supabase.instance.client;
-                final wallet = await supabase.from('wallet_accounts').select().eq('user_id', widget.userId).single();
-                double cur = double.parse((wallet['balance'] ?? 0.0).toString());
-                double prize = widget.entryFee * 1.8;
-                await supabase.from('wallet_accounts').update({'balance': cur + prize}).eq('user_id', widget.userId);
-              } catch (_) {}
-            }
-
-            void _rollPlayerDice() {
-              if (_isPlayerRolling || _waitingForPawnTap || _turn != 0) return;
-              HapticFeedback.mediumImpact();
-              
-              setState(() {
-                _isPlayerRolling = true;
-                _turnStatus = "🎲 ছক্কা ঘুরছে...";
-              });
-              _playerDiceRotCtrl.forward(from: 0.0);
-
-              int count = 0;
-              Timer.periodic(const Duration(milliseconds: 50), (timer) {
-                count++;
-                setState(() {
-                  _displayPlayerDice = Random().nextInt(6) + 1;
-                });
-                if (count >= 10) {
-                  timer.cancel();
-                  final finalRoll = Random().nextInt(6) + 1;
-                  setState(() {
-                    _playerDice = finalRoll;
-                    _displayPlayerDice = finalRoll;
-                    _isPlayerRolling = false;
-                  });
-                  _evaluatePlayerMoves();
+            void _startTimer() {
+              _timer?.cancel();
+              setState(() => _sec = 15);
+              _timer = Timer.periodic(const Duration(seconds: 1), (t) {
+                if (_sec > 0) {
+                  setState(() => _sec--);
+                } else {
+                  t.cancel();
+                  if (_turn == 0) {
+                    if (_waitingTap && _movable.isNotEmpty) {
+                      _onTapPawn(_movable.first);
+                    } else {
+                      _pass();
+                    }
+                  }
                 }
               });
             }
 
-            void _evaluatePlayerMoves() {
-              List<int> valid = [];
+            void _rollP() {
+              if (_pRolling || _waitingTap || _moving || _turn != 0) return;
+              HapticFeedback.mediumImpact();
+              setState(() {
+                _pRolling = true;
+                _status = "🎲 ছক্কা ঘুরছে...";
+              });
+              _pRot.forward(from: 0.0);
+
+              int c = 0;
+              Timer.periodic(const Duration(milliseconds: 50), (tm) {
+                c++;
+                setState(() => _dispPDice = Random().nextInt(6) + 1);
+                if (c >= 10) {
+                  tm.cancel();
+                  final val = Random().nextInt(6) + 1;
+                  setState(() {
+                    _pDice = val;
+                    _dispPDice = val;
+                    _pRolling = false;
+                  });
+                  _evalP();
+                }
+              });
+            }
+
+            void _evalP() {
+              List<int> v = [];
               for (int i = 0; i < 4; i++) {
-                if (yellowPawns[i] == -1 && _playerDice == 6) {
-                  valid.add(i);
-                } else if (yellowPawns[i] >= 0 && (yellowPawns[i] + _playerDice <= 56)) {
-                  valid.add(i);
+                if (yPawns[i] == -1 && _pDice == 6) {
+                  v.add(i);
+                } else if (yPawns[i] >= 0 && (yPawns[i] + _pDice <= 56)) {
+                  v.add(i);
                 }
               }
-
-              if (valid.isEmpty) {
-                setState(() {
-                  _turnStatus = "কোনো চাল নেই! চাল মিস!";
-                });
-                Future.delayed(const Duration(milliseconds: 1200), () => _passTurnToOpponent());
+              if (v.isEmpty) {
+                setState(() => _status = "কোনো চাল নেই!");
+                Future.delayed(const Duration(milliseconds: 1000), () => _pass());
               } else {
                 setState(() {
-                  _movablePawns = valid;
-                  _waitingForPawnTap = true;
-                  _turnStatus = "👉 যে ঘুঁটি চালাতে চান, তাতে ট্যাপ করুন!";
+                  _movable = v;
+                  _waitingTap = true;
+                  _status = "👉 ঘুঁটিতে ট্যাপ করুন!";
                 });
               }
             }
 
-            void _onSelectPlayerPawn(int idx) {
-              if (!_waitingForPawnTap || !_movablePawns.contains(idx)) return;
-              HapticFeedback.lightImpact();
-
-              setState(() {
-                _waitingForPawnTap = false;
-                _movablePawns.clear();
-
-                if (yellowPawns[idx] == -1 && _playerDice == 6) {
-                  yellowPawns[idx] = 0;
-                  _turnStatus = "ঘুঁটি ঘর থেকে বের হলো!";
-                } else {
-                  yellowPawns[idx] += _playerDice;
+            Future<void> _stepHop(int idx, int steps, bool isY) async {
+              setState(() => _moving = true);
+              if (isY ? yPawns[idx] == -1 : rPawns[idx] == -1) {
+                await Future.delayed(const Duration(milliseconds: 180));
+                setState(() => isY ? yPawns[idx] = 0 : rPawns[idx] = 0);
+                HapticFeedback.selectionClick();
+              } else {
+                for (int s = 0; s < steps; s++) {
+                  await Future.delayed(const Duration(milliseconds: 180));
+                  setState(() => isY ? yPawns[idx]++ : rPawns[idx]++);
+                  HapticFeedback.selectionClick();
                 }
+              }
+              setState(() => _moving = false);
+            }
+
+            Future<void> _onTapPawn(int idx) async {
+              if (!_waitingTap || !_movable.contains(idx) || _moving) return;
+              setState(() {
+                _waitingTap = false;
+                _movable.clear();
               });
 
-              bool captured = _checkCapture(yellowPawns, idx, true);
+              await _stepHop(idx, _pDice, true);
+              bool cap = _checkCap(yPawns, idx, true);
 
-              if (yellowPawns.every((p) => p == 56)) {
-                _showVictoryDialog(true);
+              if (yPawns.every((p) => p == 56)) {
+                _win(true);
                 return;
               }
-
-              if (_playerDice == 6 || captured) {
-                setState(() {
-                  _turnStatus = captured ? "💥 ঘুঁটি কেটেছেন! বোনাস চাল!" : "🎉 ছক্কা উঠেছে! আবার চালুন!";
-                });
+              if (_pDice == 6 || cap) {
+                setState(() => _status = cap ? "💥 ঘুঁটি কাটা গেছে! বোনাস চাল!" : "🎉 ছক্কা! আবার চালুন!");
+                _startTimer();
               } else {
-                _passTurnToOpponent();
+                _pass();
               }
             }
 
-            bool _checkCapture(List<int> pawns, int pawnIdx, bool isYellow) {
-              int stepVal = pawns[pawnIdx];
-              if (stepVal < 51) {
-                int global = (stepVal + (isYellow ? 26 : 0)) % 52;
-                if (!safeGlobalTiles.contains(global)) {
-                  List<int> opp = isYellow ? redPawns : yellowPawns;
+            bool _checkCap(List<int> pawns, int idx, bool isY) {
+              int st = pawns[idx];
+              if (st >= 0 && st < 51) {
+                int g = (st + (isY ? 27 : 1)) % 52;
+                if (!safe.contains(g)) {
+                  List<int> opp = isY ? rPawns : yPawns;
                   for (int j = 0; j < 4; j++) {
                     if (opp[j] >= 0 && opp[j] < 51) {
-                      int oppGlobal = (opp[j] + (!isYellow ? 0 : 26)) % 52;
-                      if (global == oppGlobal) {
-                        opp[j] = -1;
+                      int og = (opp[j] + (!isY ? 27 : 1)) % 52;
+                      if (g == og) {
+                        setState(() => opp[j] = -1);
+                        HapticFeedback.heavyImpact();
                         return true;
                       }
                     }
@@ -1349,320 +898,203 @@ jobs:
               return false;
             }
 
-            void _passTurnToOpponent() {
+            void _pass() {
+              _timer?.cancel();
               setState(() {
                 _turn = 1;
-                _turnStatus = "প্রতিপক্ষ চাল দিচ্ছে...";
+                _status = "প্রতিপক্ষ চাল দিচ্ছে...";
               });
-              Future.delayed(const Duration(milliseconds: 1200), () => _runOpponentTurn());
+              _startTimer();
+              Future.delayed(const Duration(milliseconds: 1000), () => _oppRoll());
             }
 
-            void _runOpponentTurn() {
-              setState(() {
-                _isOpponentRolling = true;
-              });
-              _opponentDiceRotCtrl.forward(from: 0.0);
-
-              int count = 0;
-              Timer.periodic(const Duration(milliseconds: 50), (timer) {
-                count++;
-                setState(() {
-                  _displayOpponentDice = Random().nextInt(6) + 1;
-                });
-                if (count >= 10) {
-                  timer.cancel();
-                  final oppRoll = Random().nextInt(6) + 1;
+            void _oppRoll() {
+              if (_turn != 1) return;
+              _oRot.forward(from: 0.0);
+              int c = 0;
+              Timer.periodic(const Duration(milliseconds: 50), (tm) {
+                c++;
+                setState(() => _dispODice = Random().nextInt(6) + 1);
+                if (c >= 10) {
+                  tm.cancel();
+                  final val = Random().nextInt(6) + 1;
                   setState(() {
-                    _opponentDice = oppRoll;
-                    _displayOpponentDice = oppRoll;
-                    _isOpponentRolling = false;
+                    _oDice = val;
+                    _dispODice = val;
                   });
-
-                  Future.delayed(const Duration(milliseconds: 400), () => _executeOpponentMove());
+                  Future.delayed(const Duration(milliseconds: 300), () => _oppMove());
                 }
               });
             }
 
-            void _executeOpponentMove() {
-              List<int> valid = [];
+            Future<void> _oppMove() async {
+              List<int> v = [];
               for (int i = 0; i < 4; i++) {
-                if (redPawns[i] == -1 && _opponentDice == 6) {
-                  valid.add(i);
-                } else if (redPawns[i] >= 0 && (redPawns[i] + _opponentDice <= 56)) {
-                  valid.add(i);
+                if (rPawns[i] == -1 && _oDice == 6) {
+                  v.add(i);
+                } else if (rPawns[i] >= 0 && (rPawns[i] + _oDice <= 56)) {
+                  v.add(i);
                 }
               }
-
-              if (valid.isNotEmpty) {
-                int chosen = valid.first;
-                for (var idx in valid) {
-                  if (redPawns[idx] >= 0) {
-                    int nextG = (redPawns[idx] + _opponentDice) % 52;
-                    for (int y = 0; y < 4; y++) {
-                      if (yellowPawns[y] >= 0 && yellowPawns[y] < 51) {
-                        int yG = (yellowPawns[y] + 26) % 52;
-                        if (nextG == yG && !safeGlobalTiles.contains(nextG)) {
-                          chosen = idx;
-                          break;
-                        }
-                      }
-                    }
-                  }
-                }
-
-                setState(() {
-                  if (redPawns[chosen] == -1 && _opponentDice == 6) {
-                    redPawns[chosen] = 0;
-                  } else {
-                    redPawns[chosen] += _opponentDice;
-                  }
-                });
-
-                bool captured = _checkCapture(redPawns, chosen, false);
-                if (redPawns.every((p) => p == 56)) {
-                  _showVictoryDialog(false);
+              if (v.isNotEmpty) {
+                int ch = v.first;
+                await _stepHop(ch, _oDice, false);
+                bool cap = _checkCap(rPawns, ch, false);
+                if (rPawns.every((p) => p == 56)) {
+                  _win(false);
                   return;
                 }
-
-                if (_opponentDice == 6 || captured) {
-                  Future.delayed(const Duration(milliseconds: 1100), () => _runOpponentTurn());
+                if (_oDice == 6 || cap) {
+                  Future.delayed(const Duration(milliseconds: 1000), () => _oppRoll());
                   return;
                 }
               }
-
               setState(() {
                 _turn = 0;
-                _turnStatus = "👉 আপনার চাল! ছক্কায় ট্যাপ করুন";
+                _status = "👉 আপনার চাল! ছক্কায় ট্যাপ করুন";
               });
+              _startTimer();
             }
 
-            void _showVictoryDialog(bool playerWon) {
-              if (playerWon) _recordWin();
+            void _win(bool pWon) {
+              _timer?.cancel();
               showDialog(
                 context: context,
                 barrierDismissible: false,
                 builder: (ctx) => AlertDialog(
                   backgroundColor: const Color(0xFF4A0A3A),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: Colors.amber, width: 2)),
-                  title: Row(
-                    children: [
-                      Icon(playerWon ? Icons.emoji_events : Icons.sentiment_dissatisfied, color: Colors.amber, size: 30),
-                      const SizedBox(width: 10),
-                      Text(playerWon ? "বিজয়ী!" : "পরাজিত!", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                  content: Text(
-                    playerWon ? "অভিনন্দন! আপনি ম্যাচটি জিতেছেন এবং ৳${(widget.entryFee * 1.8).toStringAsFixed(0)} পেয়েছেন!" : "দুঃখিত, প্রতিপক্ষ ম্যাচটি জিতে নিয়েছে!",
-                    style: const TextStyle(color: Colors.white70),
-                  ),
-                  actions: [
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.amber),
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        Navigator.pop(context);
-                      },
-                      child: const Text("লবিতে ফিরুন", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-                    ),
-                  ],
+                  title: Text(pWon ? "বিজয়ী!" : "ম্যাচ শেষ"),
+                  content: Text(pWon ? "অভিনন্দন! আপনি ম্যাচটি জিতেছেন!" : "প্রতিপক্ষ জিতে গেছে!"),
+                  actions: [ElevatedButton(onPressed: () { Navigator.pop(ctx); Navigator.pop(context); }, child: const Text("লবিতে ফিরুন"))],
                 ),
               );
             }
 
             @override
             Widget build(BuildContext context) {
+              final size = MediaQuery.of(context).size.width;
+              final step = size / 15.0;
+
               return Scaffold(
-                backgroundColor: const Color(0xFF19011F),
-                appBar: AppBar(
-                  title: Text(widget.entryFee > 0 ? "ম্যাচ - ফি: ৳${widget.entryFee.toInt()}" : "ফ্রেন্ডলি ম্যাচ"),
-                  backgroundColor: const Color(0xFF35042D),
-                  elevation: 0,
-                ),
+                appBar: AppBar(title: Text("ম্যাচ - ফি: ৳${widget.entryFee.toInt()}"), backgroundColor: const Color(0xFF35042D)),
                 body: SafeArea(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      // প্রতিপক্ষ বার
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Row(
                               children: [
-                                Container(
-                                  padding: const EdgeInsets.all(2.5),
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    border: Border.all(color: _turn == 1 ? Colors.greenAccent : Colors.white24, width: 2.5),
-                                    boxShadow: _turn == 1 ? [const BoxShadow(color: Colors.greenAccent, blurRadius: 10)] : [],
-                                  ),
-                                  child: const CircleAvatar(radius: 18, backgroundColor: Colors.red, child: Icon(Icons.person, color: Colors.white, size: 20)),
-                                ),
-                                const SizedBox(width: 10),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text("প্রতিপক্ষ (লাল দল)", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-                                    Text(_turn == 1 ? "চালছেন..." : "অপেক্ষা করছেন", style: TextStyle(color: _turn == 1 ? Colors.greenAccent : Colors.white54, fontSize: 11)),
-                                  ],
-                                ),
+                                Stack(alignment: Alignment.center, children: [
+                                  if (_turn == 1) SizedBox(width: 44, height: 44, child: CircularProgressIndicator(value: _sec / 15.0, strokeWidth: 3, color: Colors.greenAccent)),
+                                  const CircleAvatar(radius: 18, backgroundColor: Colors.red, child: Icon(Icons.person, color: Colors.white, size: 20)),
+                                ]),
+                                const SizedBox(width: 8),
+                                Text(_turn == 1 ? "⏱️ ${_sec}s প্রতিপক্ষ..." : "প্রতিপক্ষ (লাল)", style: const TextStyle(fontWeight: FontWeight.bold)),
                               ],
                             ),
                             AnimatedBuilder(
-                              animation: _opponentDiceRotCtrl,
-                              builder: (_, child) => Transform.rotate(
-                                angle: _opponentDiceRotCtrl.value * 2 * pi,
+                              animation: _oRot,
+                              builder: (_, __) => Transform.rotate(
+                                angle: _oRot.value * 2 * pi,
                                 child: Container(
-                                  width: 52,
-                                  height: 52,
-                                  decoration: BoxDecoration(
-                                    gradient: const LinearGradient(colors: [Color(0xFFE53935), Color(0xFFB71C1C)]),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: _turn == 1 ? Colors.amberAccent : Colors.white30, width: 2),
-                                    boxShadow: [if (_turn == 1) const BoxShadow(color: Colors.amberAccent, blurRadius: 8)],
-                                  ),
-                                  child: Center(
-                                    child: CustomPaint(
-                                      size: const Size(34, 34),
-                                      painter: TrueDicePainter(dots: _displayOpponentDice),
-                                    ),
-                                  ),
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(color: Colors.red.shade700, borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.amber, width: 2)),
+                                  child: Center(child: Text("$_dispODice", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white))),
                                 ),
                               ),
                             ),
                           ],
                         ),
                       ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                        child: AspectRatio(
-                          aspectRatio: 1.0,
-                          child: LayoutBuilder(
-                            builder: (context, constraints) {
-                              final boardSize = constraints.maxWidth;
-                              final step = boardSize / 15.0;
 
-                              return Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(color: const Color(0xFF5A2A18), width: 4),
-                                  boxShadow: const [BoxShadow(color: Colors.black87, blurRadius: 16, offset: Offset(0, 4))],
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(10),
-                                  child: Stack(
-                                    children: [
-                                      CustomPaint(
-                                        size: Size(boardSize, boardSize),
-                                        painter: TrueLudoPainter(step: step),
-                                      ),
-                                      ...List.generate(4, (i) {
-                                        Offset pos = _getExactPawnOffset(redPawns[i], false, i, step);
-                                        return Positioned(
-                                          left: pos.dx - (step * 0.40),
-                                          top: pos.dy - (step * 0.40),
-                                          width: step * 0.80,
-                                          height: step * 0.80,
-                                          child: _buildRealisticPawn(const Color(0xFFD32F2F)),
-                                        );
-                                      }),
-                                      ...List.generate(4, (i) {
-                                        Offset pos = _getExactPawnOffset(yellowPawns[i], true, i, step);
-                                        bool canTap = _waitingForPawnTap && _movablePawns.contains(i);
-
-                                        return Positioned(
-                                          left: pos.dx - (step * 0.40),
-                                          top: pos.dy - (step * 0.40),
-                                          width: step * 0.80,
-                                          height: step * 0.80,
-                                          child: GestureDetector(
-                                            onTap: canTap ? () => _onSelectPlayerPawn(i) : null,
-                                            child: AnimatedBuilder(
-                                              animation: _glowCtrl,
-                                              builder: (_, __) {
-                                                return Container(
-                                                  decoration: BoxDecoration(
-                                                    shape: BoxShape.circle,
-                                                    border: canTap ? Border.all(color: Colors.amberAccent, width: 3.0 + (_glowCtrl.value * 2)) : null,
-                                                    boxShadow: canTap ? [BoxShadow(color: Colors.amberAccent.withOpacity(0.9), blurRadius: 10, spreadRadius: 2)] : null,
-                                                  ),
-                                                  child: _buildRealisticPawn(Colors.amber.shade700),
-                                                );
-                                              },
+                      // এজ-টু-এজ ১০০% ফিট বোর্ড
+                      SizedBox(
+                        width: size,
+                        height: size,
+                        child: Stack(
+                          children: [
+                            CustomPaint(size: Size(size, size), painter: LudoPainter(step: step)),
+                            // লাল ঘুঁটি
+                            ...List.generate(4, (i) {
+                              Offset pt = _getOffset(rPawns[i], false, i, step);
+                              return Positioned(left: pt.dx - step * 0.4, top: pt.dy - step * 0.4, width: step * 0.8, height: step * 0.8, child: _pawnWidget(Colors.red.shade700));
+                            }),
+                            // হলুদ ঘুঁটি (ম্যানুয়াল ট্যাপ ও ব্লিঙ্ক)
+                            ...List.generate(4, (i) {
+                              Offset pt = _getOffset(yPawns[i], true, i, step);
+                              bool can = _waitingTap && _movable.contains(i);
+                              return Positioned(
+                                left: pt.dx - step * 0.42,
+                                top: pt.dy - step * 0.42,
+                                width: step * 0.84,
+                                height: step * 0.84,
+                                child: GestureDetector(
+                                  onTap: can ? () => _onTapPawn(i) : null,
+                                  child: AnimatedBuilder(
+                                    animation: _glow,
+                                    builder: (_, __) {
+                                      return Stack(
+                                        alignment: Alignment.center,
+                                        children: [
+                                          Transform.scale(
+                                            scale: can ? 1.0 + (_glow.value * 0.25) : 1.0,
+                                            child: Container(
+                                              decoration: BoxDecoration(shape: BoxShape.circle, border: can ? Border.all(color: Colors.amberAccent, width: 3.5) : null),
+                                              child: _pawnWidget(Colors.amber.shade700),
                                             ),
                                           ),
-                                        );
-                                      }),
-                                    ],
+                                          if (can) const Positioned(top: -6, child: Text("👆", style: TextStyle(fontSize: 16))),
+                                        ],
+                                      );
+                                    },
                                   ),
                                 ),
                               );
-                            },
-                          ),
+                            }),
+                          ],
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                        decoration: BoxDecoration(color: const Color(0xFF35042D), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.amber.withOpacity(0.4))),
-                        child: Text(_turnStatus, style: const TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold, fontSize: 13)),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        color: const Color(0xFF24022B),
+
+                      // স্ট্যাটাস
+                      Text(_status, style: const TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold, fontSize: 13)),
+
+                      // নিজের বার
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Row(
                               children: [
-                                Container(
-                                  padding: const EdgeInsets.all(2.5),
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    border: Border.all(color: _turn == 0 ? Colors.amberAccent : Colors.white24, width: 2.5),
-                                    boxShadow: _turn == 0 ? [const BoxShadow(color: Colors.amber, blurRadius: 10)] : [],
-                                  ),
-                                  child: CircleAvatar(radius: 20, backgroundColor: Colors.amber, child: Text(widget.playerName.isNotEmpty ? widget.playerName[0].toUpperCase() : 'P', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold))),
-                                ),
+                                Stack(alignment: Alignment.center, children: [
+                                  if (_turn == 0) SizedBox(width: 48, height: 48, child: CircularProgressIndicator(value: _sec / 15.0, strokeWidth: 3, color: Colors.amberAccent)),
+                                  CircleAvatar(radius: 20, backgroundColor: Colors.amber, child: Text(widget.playerName.isNotEmpty ? widget.playerName[0].toUpperCase() : 'P', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold))),
+                                ]),
                                 const SizedBox(width: 8),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(widget.playerName, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14)),
-                                    const Text("হলুদ দল", style: TextStyle(color: Colors.amberAccent, fontSize: 11)),
-                                  ],
-                                ),
+                                Text(_turn == 0 ? "⏱️ ${_sec}s আপনার চাল" : widget.playerName, style: const TextStyle(fontWeight: FontWeight.bold)),
                               ],
                             ),
                             GestureDetector(
-                              onTap: (_turn == 0 && !_isPlayerRolling && !_waitingForPawnTap) ? _rollPlayerDice : null,
+                              onTap: (_turn == 0 && !_pRolling && !_waitingTap && !_moving) ? _rollP : null,
                               child: AnimatedBuilder(
-                                animation: _playerDiceRotCtrl,
-                                builder: (_, child) => Transform.rotate(
-                                  angle: _playerDiceRotCtrl.value * 2 * pi,
+                                animation: _pRot,
+                                builder: (_, __) => Transform.rotate(
+                                  angle: _pRot.value * 2 * pi,
                                   child: Container(
-                                    width: 66,
-                                    height: 66,
+                                    width: 62,
+                                    height: 62,
                                     decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: (_turn == 0 && !_waitingForPawnTap)
-                                            ? [const Color(0xFF29B6F6), const Color(0xFF0288D1)]
-                                            : [Colors.grey.shade700, Colors.grey.shade900],
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                      ),
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(color: (_turn == 0 && !_waitingForPawnTap) ? Colors.amberAccent : Colors.transparent, width: 3),
-                                      boxShadow: [
-                                        if (_turn == 0 && !_waitingForPawnTap) const BoxShadow(color: Colors.amberAccent, blurRadius: 12, spreadRadius: 1)
-                                      ],
+                                      color: _turn == 0 && !_waitingTap ? Colors.blue.shade700 : Colors.grey.shade800,
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(color: Colors.amberAccent, width: 2.5),
                                     ),
-                                    child: Center(
-                                      child: CustomPaint(
-                                        size: const Size(42, 42),
-                                        painter: TrueDicePainter(dots: _displayPlayerDice),
-                                      ),
-                                    ),
+                                    child: Center(child: Text("$_dispPDice", style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white))),
                                   ),
                                 ),
                               ),
@@ -1676,194 +1108,80 @@ jobs:
               );
             }
 
-            Widget _buildRealisticPawn(Color color) {
+            Widget _pawnWidget(Color c) {
               return Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: color,
-                  border: Border.all(color: Colors.white, width: 2),
-                  boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 4, offset: Offset(0, 2))],
-                ),
-                child: Center(
-                  child: Container(
-                    width: 14,
-                    height: 14,
-                    decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white),
-                  ),
-                ),
+                decoration: BoxDecoration(shape: BoxShape.circle, color: c, border: Border.all(color: Colors.white, width: 2), boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 4)]),
+                child: const Center(child: Icon(Icons.star, size: 14, color: Colors.white)),
               );
             }
 
-            Offset _getExactPawnOffset(int stepVal, bool isYellow, int slot, double step) {
-              if (stepVal == -1) {
-                if (isYellow) {
-                  final yellowPockets = [
-                    Offset(step * 1.8, step * 10.8),
-                    Offset(step * 3.8, step * 10.8),
-                    Offset(step * 1.8, step * 12.8),
-                    Offset(step * 3.8, step * 12.8),
-                  ];
-                  return yellowPockets[slot];
-                } else {
-                  final redPockets = [
-                    Offset(step * 10.8, step * 1.8),
-                    Offset(step * 12.8, step * 1.8),
-                    Offset(step * 10.8, step * 3.8),
-                    Offset(step * 12.8, step * 3.8),
-                  ];
-                  return redPockets[slot];
-                }
+            Offset _getOffset(int st, bool isY, int slot, double s) {
+              if (st == -1) {
+                return isY
+                    ? [Offset(s * 1.8, s * 10.8), Offset(s * 4.2, s * 10.8), Offset(s * 1.8, s * 13.2), Offset(s * 4.2, s * 13.2)][slot]
+                    : [Offset(s * 10.8, s * 1.8), Offset(s * 13.2, s * 1.8), Offset(s * 10.8, s * 4.2), Offset(s * 13.2, s * 4.2)][slot];
               }
-
-              if (stepVal < 51) {
-                int globalIdx = (stepVal + (isYellow ? 27 : 1)) % 52;
-                final pt = trackPoints[globalIdx];
-                return Offset((pt.x + 0.5) * step, (pt.y + 0.5) * step);
+              if (st < 51) {
+                int g = (st + (isY ? 27 : 1)) % 52;
+                final pt = track[g];
+                return Offset((pt.x + 0.5) * s, (pt.y + 0.5) * s);
               }
-
-              int h = stepVal - 51;
-              if (isYellow) {
-                return Offset(step * 7.5, (13.5 - h) * step);
-              } else {
-                return Offset(step * 7.5, (1.5 + h) * step);
-              }
+              int h = st - 51;
+              return isY ? Offset(s * 7.5, (13.5 - h) * s) : Offset(s * 7.5, (1.5 + h) * s);
             }
           }
 
-          class TrueLudoPainter extends CustomPainter {
+          // ৭. লুপেইন্টার (সাদা পথ ও চার রঙ)
+          class LudoPainter extends CustomPainter {
             final double step;
-            TrueLudoPainter({required this.step});
+            LudoPainter({required this.step});
 
             @override
             void paint(Canvas canvas, Size size) {
-              final paint = Paint()..style = PaintingStyle.fill;
-
+              final p = Paint()..style = PaintingStyle.fill;
               canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), Paint()..color = Colors.white);
 
-              paint.color = const Color(0xFF1E88E5);
-              canvas.drawRect(Rect.fromLTWH(0, 0, step * 6, step * 6), paint);
+              p.color = const Color(0xFF1E88E5);
+              canvas.drawRect(Rect.fromLTWH(0, 0, step * 6, step * 6), p);
+              p.color = const Color(0xFFE53935);
+              canvas.drawRect(Rect.fromLTWH(step * 9, 0, step * 6, step * 6), p);
+              p.color = const Color(0xFFFBC02D);
+              canvas.drawRect(Rect.fromLTWH(0, step * 9, step * 6, step * 6), p);
+              p.color = const Color(0xFF2E7D32);
+              canvas.drawRect(Rect.fromLTWH(step * 9, step * 9, step * 6, step * 6), p);
 
-              paint.color = const Color(0xFFE53935);
-              canvas.drawRect(Rect.fromLTWH(step * 9, 0, step * 6, step * 6), paint);
-
-              paint.color = const Color(0xFFFBC02D);
-              canvas.drawRect(Rect.fromLTWH(0, step * 9, step * 6, step * 6), paint);
-
-              paint.color = const Color(0xFF2E7D32);
-              canvas.drawRect(Rect.fromLTWH(step * 9, step * 9, step * 6, step * 6), paint);
-
-              void drawBasePockets(double x, double y, Color c) {
-                final rrect = RRect.fromRectAndRadius(Rect.fromLTWH(x + step * 0.8, y + step * 0.8, step * 4.4, step * 4.4), const Radius.circular(16));
-                canvas.drawRRect(rrect, Paint()..color = Colors.white);
-
-                final slotCoords = [
-                  Offset(x + step * 1.8, y + step * 1.8),
-                  Offset(x + step * 3.8, y + step * 1.8),
-                  Offset(x + step * 1.8, y + step * 3.8),
-                  Offset(x + step * 3.8, y + step * 3.8),
-                ];
-                for (var pt in slotCoords) {
-                  canvas.drawCircle(pt, step * 0.65, Paint()..color = c.withOpacity(0.15));
-                  canvas.drawCircle(pt, step * 0.65, Paint()..color = c..style = PaintingStyle.stroke..strokeWidth = 2);
+              void box(double x, double y, Color c) {
+                canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(x + step * 0.8, y + step * 0.8, step * 4.4, step * 4.4), const Radius.circular(16)), Paint()..color = Colors.white);
+                for (var pt in [Offset(x + step * 1.8, y + step * 1.8), Offset(x + step * 4.2, y + step * 1.8), Offset(x + step * 1.8, y + step * 4.2), Offset(x + step * 4.2, y + step * 4.2)]) {
+                  canvas.drawCircle(pt, step * 0.65, Paint()..color = c.withOpacity(0.2));
                 }
               }
 
-              drawBasePockets(0, 0, const Color(0xFF1E88E5));
-              drawBasePockets(step * 9, 0, const Color(0xFFE53935));
-              drawBasePockets(0, step * 9, const Color(0xFFFBC02D));
-              drawBasePockets(step * 9, step * 9, const Color(0xFF2E7D32));
+              box(0, 0, const Color(0xFF1E88E5));
+              box(step * 9, 0, const Color(0xFFE53935));
+              box(0, step * 9, const Color(0xFFFBC02D));
+              box(step * 9, step * 9, const Color(0xFF2E7D32));
 
-              for (int r = 1; r <= 5; r++) {
-                canvas.drawRect(Rect.fromLTWH(7 * step, r * step, step, step), Paint()..color = const Color(0xFFE53935));
-              }
-              for (int r = 9; r <= 13; r++) {
-                canvas.drawRect(Rect.fromLTWH(7 * step, r * step, step, step), Paint()..color = const Color(0xFFFBC02D));
-              }
-              for (int c = 1; c <= 5; c++) {
-                canvas.drawRect(Rect.fromLTWH(c * step, 7 * step, step, step), Paint()..color = const Color(0xFF1E88E5));
-              }
-              for (int c = 9; c <= 13; c++) {
-                canvas.drawRect(Rect.fromLTWH(c * step, 7 * step, step, step), Paint()..color = const Color(0xFF2E7D32));
-              }
+              for (int r = 1; r <= 5; r++) { canvas.drawRect(Rect.fromLTWH(7 * step, r * step, step, step), Paint()..color = const Color(0xFFE53935)); }
+              for (int r = 9; r <= 13; r++) { canvas.drawRect(Rect.fromLTWH(7 * step, r * step, step, step), Paint()..color = const Color(0xFFFBC02D)); }
+              for (int c = 1; c <= 5; c++) { canvas.drawRect(Rect.fromLTWH(c * step, 7 * step, step, step), Paint()..color = const Color(0xFF1E88E5)); }
+              for (int c = 9; c <= 13; c++) { canvas.drawRect(Rect.fromLTWH(c * step, 7 * step, step, step), Paint()..color = const Color(0xFF2E7D32)); }
 
               canvas.drawRect(Rect.fromLTWH(8 * step, 1 * step, step, step), Paint()..color = const Color(0xFFE53935));
               canvas.drawRect(Rect.fromLTWH(6 * step, 13 * step, step, step), Paint()..color = const Color(0xFFFBC02D));
-              canvas.drawRect(Rect.fromLTWH(1 * step, 6 * step, step, step), Paint()..color = const Color(0xFF1E88E5));
-              canvas.drawRect(Rect.fromLTWH(13 * step, 8 * step, step, step), Paint()..color = const Color(0xFF2E7D32));
 
-              void drawStar(double c, double r) {
-                final pt = Offset((c + 0.5) * step, (r + 0.5) * step);
-                canvas.drawCircle(pt, step * 0.32, Paint()..color = Colors.black26);
-              }
-
-              drawStar(6, 2);
-              drawStar(12, 6);
-              drawStar(8, 12);
-              drawStar(2, 8);
-
-              final border = Paint()..style = PaintingStyle.stroke..color = Colors.black26..strokeWidth = 1.0;
+              final b = Paint()..style = PaintingStyle.stroke..color = Colors.black26..strokeWidth = 1.0;
               for (int r = 0; r < 15; r++) {
                 for (int c = 0; c < 15; c++) {
-                  canvas.drawRect(Rect.fromLTWH(c * step, r * step, step, step), border);
+                  canvas.drawRect(Rect.fromLTWH(c * step, r * step, step, step), b);
                 }
               }
 
-              final center = Offset(step * 7.5, step * 7.5);
-              canvas.drawPath(Path()..moveTo(step * 6, step * 6)..lineTo(step * 9, step * 6)..lineTo(center.dx, center.dy)..close(), Paint()..color = const Color(0xFFE53935));
-              canvas.drawPath(Path()..moveTo(step * 6, step * 9)..lineTo(step * 9, step * 9)..lineTo(center.dx, center.dy)..close(), Paint()..color = const Color(0xFFFBC02D));
-              canvas.drawPath(Path()..moveTo(step * 6, step * 6)..lineTo(step * 6, step * 9)..lineTo(center.dx, center.dy)..close(), Paint()..color = const Color(0xFF1E88E5));
-              canvas.drawPath(Path()..moveTo(step * 9, step * 6)..lineTo(step * 9, step * 9)..lineTo(center.dx, center.dy)..close(), Paint()..color = const Color(0xFF2E7D32));
-            }
-
-            @override
-            bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-          }
-
-          class TrueDicePainter extends CustomPainter {
-            final int dots;
-            TrueDicePainter({required this.dots});
-
-            @override
-            void paint(Canvas canvas, Size size) {
-              final pip = Paint()..color = Colors.white..style = PaintingStyle.fill;
-              final shadow = Paint()..color = Colors.black38..style = PaintingStyle.fill;
-              final r = size.width * 0.11;
-              final w = size.width;
-              final h = size.height;
-
-              void drawDot(double x, double y) {
-                canvas.drawCircle(Offset(x, y + 1.2), r, shadow);
-                canvas.drawCircle(Offset(x, y), r, pip);
-              }
-
-              if (dots == 1) {
-                drawDot(w * 0.5, h * 0.5);
-              } else if (dots == 2) {
-                drawDot(w * 0.28, h * 0.28);
-                drawDot(w * 0.72, h * 0.72);
-              } else if (dots == 3) {
-                drawDot(w * 0.25, h * 0.25);
-                drawDot(w * 0.5, h * 0.5);
-                drawDot(w * 0.75, h * 0.75);
-              } else if (dots == 4) {
-                drawDot(w * 0.28, h * 0.28);
-                drawDot(w * 0.72, h * 0.28);
-                drawDot(w * 0.28, h * 0.72);
-                drawDot(w * 0.72, h * 0.72);
-              } else if (dots == 5) {
-                drawDot(w * 0.28, h * 0.28);
-                drawDot(w * 0.72, h * 0.28);
-                drawDot(w * 0.5, h * 0.5);
-                drawDot(w * 0.28, h * 0.72);
-                drawDot(w * 0.72, h * 0.72);
-              } else if (dots == 6) {
-                drawDot(w * 0.28, h * 0.22);
-                drawDot(w * 0.72, h * 0.22);
-                drawDot(w * 0.28, h * 0.5);
-                drawDot(w * 0.72, h * 0.5);
-                drawDot(w * 0.28, h * 0.78);
-                drawDot(w * 0.72, h * 0.78);
-              }
+              final cnt = Offset(step * 7.5, step * 7.5);
+              canvas.drawPath(Path()..moveTo(step * 6, step * 6)..lineTo(step * 9, step * 6)..lineTo(cnt.dx, cnt.dy)..close(), Paint()..color = const Color(0xFFE53935));
+              canvas.drawPath(Path()..moveTo(step * 6, step * 9)..lineTo(step * 9, step * 9)..lineTo(cnt.dx, cnt.dy)..close(), Paint()..color = const Color(0xFFFBC02D));
+              canvas.drawPath(Path()..moveTo(step * 6, step * 6)..lineTo(step * 6, step * 9)..lineTo(cnt.dx, cnt.dy)..close(), Paint()..color = const Color(0xFF1E88E5));
+              canvas.drawPath(Path()..moveTo(step * 9, step * 6)..lineTo(step * 9, step * 9)..lineTo(cnt.dx, cnt.dy)..close(), Paint()..color = const Color(0xFF2E7D32));
             }
 
             @override
@@ -1871,11 +1189,11 @@ jobs:
           }
           EOF
 
-      - name: Build Flawless Release APK
+      - name: Build Final Release APK
         run: flutter build apk --release
 
-      - name: Upload Flawless APK Artifact
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: jumman-ludo-flawless-edition
+          name: jumman-ludo-king-pro-final
           path: build/app/outputs/flutter-apk/app-release.apk

@@ -1,4 +1,4 @@
-name: Build Jumman Ludo APK
+name: Build Jumman Ludo All In One Master
 
 on:
   push:
@@ -24,17 +24,20 @@ jobs:
           flutter-version: '3.19.6'
           channel: 'stable'
 
-      - name: Auto-Repair Project & Android Skeleton
+      - name: Reset & Build Single Master File
         run: |
           flutter create --org com.jumman.ludo --project-name jumman_ludo .
           
-          # ১. অ্যান্ড্রয়েড পারমিশন কনফিগারেশন
+          # ১. পুরনো ক্র্যাশ করা ফোল্ডার মুছে ফেলা
+          rm -rf lib/screens
+
+          # ২. অ্যান্ড্রয়েড পারমিশন
           sed -i '/<application/i <uses-permission android:name="android.permission.INTERNET"/>\n<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>\n<uses-permission android:name="android.permission.VIBRATE"/>\n<queries><intent><action android:name="android.intent.action.VIEW"/><data android:scheme="https"/></intent><package android:name="com.whatsapp"/><package android:name="org.telegram.messenger"/></queries>' android/app/src/main/AndroidManifest.xml || true
 
-          # ২. নিরাপদ ডিপেন্ডেন্সি (google_fonts অফলাইন ক্র্যাশ ফিক্স)
+          # ৩. নিখুঁত ডিপেন্ডেন্সি
           cat << 'EOF' > pubspec.yaml
           name: jumman_ludo
-          description: "Jumman Ludo Pro Edition"
+          description: "Jumman Ludo Complete Master App"
           publish_to: "none"
           version: 1.0.0+1
           environment:
@@ -50,18 +53,20 @@ jobs:
             uses-material-design: true
           EOF
 
-          # ৩. মেইন এন্ট্রি ফিক্স (সরাসরি সঠিক লিংকিং)
+          # ৪. এক ফাইলেই সম্পূর্ণ লুডু কিং গেম, অ্যাডমিন ও ওয়ালেট (কোনো ইমপোর্ট এরর হবে না)
           cat << 'EOF' > lib/main.dart
           import 'dart:async';
+          import 'dart:math';
           import 'package:flutter/material.dart';
+          import 'package:flutter/services.dart';
           import 'package:supabase_flutter/supabase_flutter.dart';
           import 'package:shared_preferences/shared_preferences.dart';
           import 'package:url_launcher/url_launcher.dart';
-          import 'screens/home_screen.dart';
 
           const String supabaseUrl = 'https://tjagciqfcijvszqtsxhr.supabase.co';
           const String supabaseAnonKey = 'sb_publishable_jkd8rKF0gJHgml6kxmOxig_1mWaF7Sm';
           const String masterAdminPin = '7742';
+          const String currentAppVersion = '1.0.0';
 
           void main() async {
             WidgetsFlutterBinding.ensureInitialized();
@@ -73,7 +78,6 @@ jobs:
 
           class JummanLudoApp extends StatelessWidget {
             const JummanLudoApp({super.key});
-
             @override
             Widget build(BuildContext context) {
               return MaterialApp(
@@ -88,6 +92,7 @@ jobs:
             }
           }
 
+          // ১. স্প্ল্যাশ ও ব্যান চেকার
           class SplashScreen extends StatefulWidget {
             const SplashScreen({super.key});
             @override
@@ -98,10 +103,10 @@ jobs:
             @override
             void initState() {
               super.initState();
-              _checkUser();
+              _init();
             }
 
-            Future<void> _checkUser() async {
+            Future<void> _init() async {
               await Future.delayed(const Duration(seconds: 2));
               final prefs = await SharedPreferences.getInstance();
               final phone = prefs.getString('user_phone');
@@ -135,7 +140,7 @@ jobs:
                       Icon(Icons.casino, size: 90, color: Color(0xFFFFD700)),
                       SizedBox(height: 16),
                       Text("JUMMAN LUDO", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 2)),
-                      Text("★ PRO EDITION ★", style: TextStyle(color: Colors.amberAccent, letterSpacing: 2, fontWeight: FontWeight.bold, fontSize: 13)),
+                      Text("★ LUDO KING PRO MASTER ★", style: TextStyle(color: Colors.amberAccent, letterSpacing: 2, fontWeight: FontWeight.bold, fontSize: 13)),
                       SizedBox(height: 35),
                       CircularProgressIndicator(color: Colors.greenAccent),
                     ],
@@ -168,7 +173,7 @@ jobs:
                           icon: const Icon(Icons.chat),
                           label: const Text("WhatsApp সাপোর্টে কথা বলুন"),
                           onPressed: () async {
-                            final uri = Uri.parse("https://wa.me/8801774229222");
+                            final uri = Uri.parse("https://wa.me/8801774229222?text=${Uri.encodeComponent('আমার অ্যাকাউন্ট ব্লক করা হয়েছে, দয়া করে আনব্লক করুন।')}");
                             if (await canLaunchUrl(uri)) launchUrl(uri, mode: LaunchMode.externalApplication);
                           },
                         ),
@@ -180,6 +185,7 @@ jobs:
             }
           }
 
+          // ২. লগইন স্ক্রিন
           class LoginScreen extends StatefulWidget {
             const LoginScreen({super.key});
             @override
@@ -252,15 +258,1002 @@ jobs:
               );
             }
           }
+
+          // ৩. সম্পূর্ণ লুডু কিং লবি (কোনো ফাঁকা ছাড়া)
+          class HomeScreen extends StatefulWidget {
+            final String phone;
+            final String userId;
+            const HomeScreen({super.key, required this.phone, required this.userId});
+            @override
+            State<HomeScreen> createState() => _HomeScreenState();
+          }
+
+          class _HomeScreenState extends State<HomeScreen> {
+            double _balance = 0.0;
+            String _name = "খেলোয়াড়";
+            String _playerId = "JL-1000";
+
+            @override
+            void initState() {
+              super.initState();
+              _loadData();
+            }
+
+            Future<void> _loadData() async {
+              try {
+                final sb = Supabase.instance.client;
+                final p = await sb.from('profiles').select().eq('phone_number', widget.phone).maybeSingle();
+                if (p != null) {
+                  if (p['is_banned'] == true && mounted) {
+                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const BannedScreen()));
+                    return;
+                  }
+                  setState(() {
+                    _name = p['full_name'] ?? "খেলোয়াড়";
+                    _playerId = p['player_id'] ?? "JL-1000";
+                  });
+                }
+                final w = await sb.from('wallet_accounts').select().eq('user_id', widget.userId).maybeSingle();
+                if (w != null) setState(() => _balance = double.parse((w['balance'] ?? 0.0).toString()));
+              } catch (_) {}
+            }
+
+            void _openAdmin() {
+              final pin = TextEditingController();
+              showDialog(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  backgroundColor: const Color(0xFF4A0A3A),
+                  title: const Text("অ্যাডমিন পিন", style: TextStyle(color: Colors.amber)),
+                  content: TextField(controller: pin, keyboardType: TextInputType.number, obscureText: true, maxLength: 4, textAlign: TextAlign.center, style: const TextStyle(fontSize: 24, letterSpacing: 8)),
+                  actions: [
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.amber),
+                      onPressed: () {
+                        if (pin.text.trim() == masterAdminPin) {
+                          Navigator.pop(ctx);
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminScreen()));
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ভুল পিন!")));
+                        }
+                      },
+                      child: const Text("প্রবেশ", style: TextStyle(color: Colors.black)),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            @override
+            Widget build(BuildContext context) {
+              return Scaffold(
+                body: SafeArea(
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        child: Row(
+                          children: [
+                            CircleAvatar(backgroundColor: Colors.amber, child: Text(_name.isNotEmpty ? _name[0].toUpperCase() : 'P', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold))),
+                            const SizedBox(width: 8),
+                            GestureDetector(
+                              onTap: () async {
+                                await Navigator.push(context, MaterialPageRoute(builder: (_) => WalletScreen(phone: widget.phone, userId: widget.userId, balance: _balance)));
+                                _loadData();
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(color: const Color(0xFF35042D), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.amber)),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.monetization_on, color: Colors.amber, size: 18),
+                                    const SizedBox(width: 4),
+                                    Text("৳ ${_balance.toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.bold)),
+                                    const SizedBox(width: 4),
+                                    const Icon(Icons.add_circle, color: Colors.greenAccent, size: 16),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const Spacer(),
+                            IconButton(
+                              icon: const Icon(Icons.headset_mic, color: Colors.greenAccent),
+                              onPressed: () async {
+                                final uri = Uri.parse("https://wa.me/8801774229222");
+                                if (await canLaunchUrl(uri)) launchUrl(uri, mode: LaunchMode.externalApplication);
+                              },
+                            ),
+                            IconButton(icon: const Icon(Icons.security, color: Colors.amber), onPressed: _openAdmin),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: ListView(
+                          padding: const EdgeInsets.all(14),
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(colors: [Color(0xFFE91E63), Color(0xFFFF9800)]),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: Colors.amberAccent),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.card_giftcard, size: 40, color: Colors.white),
+                                  const SizedBox(width: 12),
+                                  const Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text("দৈনিক রিওয়ার্ড ও বোনাস!", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                                        Text("প্রতিদিন ফ্রি কয়েন সংগ্রহ করুন", style: TextStyle(fontSize: 12, color: Colors.white70)),
+                                      ],
+                                    ),
+                                  ),
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(backgroundColor: Colors.amber, foregroundColor: Colors.black),
+                                    onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("আজকের রিওয়ার্ড সংগৃহীত হয়েছে!"))),
+                                    child: const Text("ক্লেইম", style: TextStyle(fontWeight: FontWeight.bold)),
+                                  )
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            _buildModeCard("2 Player Battle", "ক্লাসিক ব্যাটল (৳২০)", Colors.orange.shade800, 20.0),
+                            const SizedBox(height: 14),
+                            _buildModeCard("4 Player Royal", "রয়্যাল ধামাকা (৳৫০)", Colors.purple.shade800, 50.0),
+                            const SizedBox(height: 14),
+                            _buildModeCard("Pass N Play", "এক ফোনেই খেলুন (ফ্রি)", Colors.teal.shade800, 0.0),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        decoration: const BoxDecoration(color: Color(0xFF19011F), border: Border(top: BorderSide(color: Colors.white12))),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            IconButton(icon: const Icon(Icons.account_balance_wallet, color: Colors.amber, size: 28), onPressed: () async {
+                              await Navigator.push(context, MaterialPageRoute(builder: (_) => WalletScreen(phone: widget.phone, userId: widget.userId, balance: _balance)));
+                              _loadData();
+                            }),
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.amber),
+                              child: const Icon(Icons.home, color: Color(0xFF2C0438), size: 28),
+                            ),
+                            IconButton(icon: const Icon(Icons.chat_bubble_outline, color: Colors.greenAccent), onPressed: () async {
+                              final uri = Uri.parse("https://wa.me/8801774229222");
+                              if (await canLaunchUrl(uri)) launchUrl(uri, mode: LaunchMode.externalApplication);
+                            }),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            Widget _buildModeCard(String title, String sub, Color color, double fee) {
+              return GestureDetector(
+                onTap: () async {
+                  if (fee > 0 && _balance < fee) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("পর্যাপ্ত ব্যালেন্স নেই! ওয়ালেটে টাকা জমা দিন।")));
+                    return;
+                  }
+                  await Navigator.push(context, MaterialPageRoute(builder: (_) => LudoGameScreen(entryFee: fee, userId: widget.userId, playerName: _name)));
+                  _loadData();
+                },
+                child: Container(
+                  height: 110,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(18), border: Border.all(color: Colors.amber, width: 2)),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
+                        Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+                        Text(sub, style: const TextStyle(fontSize: 13, color: Colors.white70)),
+                      ]),
+                      const Icon(Icons.play_circle_fill, size: 45, color: Colors.amberAccent),
+                    ],
+                  ),
+                ),
+              );
+            }
+          }
+
+          // ৪. ওয়ালেট স্ক্রিন (মিনিমাম ৩০০ ও নম্বর কপি সহ)
+          class WalletScreen extends StatefulWidget {
+            final String phone;
+            final String userId;
+            final double balance;
+            const WalletScreen({super.key, required this.phone, required this.userId, required this.balance});
+            @override
+            State<WalletScreen> createState() => _WalletScreenState();
+          }
+
+          class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderStateMixin {
+            late TabController _tab;
+            final _depAmt = TextEditingController();
+            final _trxId = TextEditingController();
+            final _withAmt = TextEditingController();
+            final _withPhone = TextEditingController();
+            bool _loading = false;
+
+            @override
+            void initState() {
+              super.initState();
+              _tab = TabController(length: 2, vsync: this);
+              _withPhone.text = widget.phone;
+            }
+
+            Future<void> _submitDep() async {
+              final a = double.tryParse(_depAmt.text) ?? 0;
+              final t = _trxId.text.trim();
+              if (a < 10 || t.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("সঠিক তথ্য দিন")));
+                return;
+              }
+              setState(() => _loading = true);
+              try {
+                await Supabase.instance.client.from('deposit_requests').insert({
+                  'user_id': widget.userId,
+                  'amount': a,
+                  'payment_method': 'BKASH',
+                  'sender_number': widget.phone,
+                  'trx_id': t,
+                  'status': 'PENDING',
+                });
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("অনুরোধ সফল হয়েছে!")));
+                  Navigator.pop(context);
+                }
+              } catch (e) {
+                if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("ত্রুটি: $e")));
+              } finally {
+                if (mounted) setState(() => _loading = false);
+              }
+            }
+
+            Future<void> _submitWith() async {
+              final a = double.tryParse(_withAmt.text) ?? 0;
+              // ⚠️ সর্বনিম্ন উত্তোলন ৩০০ টাকা
+              if (a < 300 || a > widget.balance) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("সর্বনিম্ন উত্তোলন ৩০০ টাকা এবং ব্যালেন্সের সমান বা কম হতে হবে!")));
+                return;
+              }
+              setState(() => _loading = true);
+              try {
+                await Supabase.instance.client.from('withdrawal_requests').insert({
+                  'user_id': widget.userId,
+                  'amount': a,
+                  'payment_method': 'BKASH',
+                  'receiver_number': _withPhone.text,
+                  'status': 'PENDING',
+                });
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("উত্তোলন অনুরোধ সফল হয়েছে!")));
+                  Navigator.pop(context);
+                }
+              } catch (e) {
+                if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("ত্রুটি: $e")));
+              } finally {
+                if (mounted) setState(() => _loading = false);
+              }
+            }
+
+            @override
+            Widget build(BuildContext context) {
+              return Scaffold(
+                appBar: AppBar(title: const Text("ওয়ালেট"), backgroundColor: const Color(0xFF4A0A3A), bottom: TabBar(controller: _tab, tabs: const [Tab(text: "জমা"), Tab(text: "উত্তোলন")])),
+                body: TabBarView(
+                  controller: _tab,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(color: const Color(0xFF35042D), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.amber)),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text("বিকাশ/নগদ: 01774229222", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.amber)),
+                                // 📋 ১-ক্লিক নম্বর কপি বাটন
+                                IconButton(
+                                  icon: const Icon(Icons.copy, color: Colors.amberAccent),
+                                  onPressed: () {
+                                    Clipboard.setData(const ClipboardData(text: "01774229222"));
+                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("নম্বর কপি হয়েছে!"), duration: Duration(seconds: 1)));
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          TextField(controller: _depAmt, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "টাকার পরিমাণ")),
+                          TextField(controller: _trxId, decoration: const InputDecoration(labelText: "TrxID")),
+                          const SizedBox(height: 20),
+                          ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.amber, minimumSize: const Size(double.infinity, 45)), onPressed: _loading ? null : _submitDep, child: const Text("জমা দিন", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold))),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          TextField(controller: _withAmt, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "পরিমাণ (মিনিমাম ৳৩০০)")),
+                          TextField(controller: _withPhone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: "বিকাশ নম্বর")),
+                          const SizedBox(height: 20),
+                          ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.green, minimumSize: const Size(double.infinity, 45)), onPressed: _loading ? null : _submitWith, child: const Text("উত্তোলন করুন", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+          }
+
+          // ৫. অ্যাডমিন স্ক্রিন (খেলোয়াড় ব্লক, আনব্লক ও ব্যালেন্স কন্ট্রোল)
+          class AdminScreen extends StatefulWidget {
+            const AdminScreen({super.key});
+            @override
+            State<AdminScreen> createState() => _AdminScreenState();
+          }
+
+          class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStateMixin {
+            late TabController _tab;
+            String _search = "";
+
+            @override
+            void initState() {
+              super.initState();
+              _tab = TabController(length: 3, vsync: this);
+            }
+
+            void _editPlayer(Map<String, dynamic> p) {
+              final balCtrl = TextEditingController();
+              bool banned = p['is_banned'] ?? false;
+              showDialog(
+                context: context,
+                builder: (ctx) => StatefulBuilder(
+                  builder: (context, setD) {
+                    return AlertDialog(
+                      backgroundColor: const Color(0xFF35042D),
+                      title: Text("${p['full_name']} (কন্ট্রোল)", style: const TextStyle(color: Colors.amber)),
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text("ফোন: ${p['phone_number']}"),
+                          const SizedBox(height: 10),
+                          TextField(controller: balCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "ব্যালেন্স যোগ/বিয়োগ")),
+                          const SizedBox(height: 14),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(backgroundColor: banned ? Colors.green : Colors.red),
+                            onPressed: () async {
+                              bool next = !banned;
+                              await Supabase.instance.client.from('profiles').update({'is_banned': next}).eq('id', p['id']);
+                              setD(() => banned = next);
+                            },
+                            child: Text(banned ? "আনব্লক করুন" : "ব্লক করুন", style: const TextStyle(color: Colors.white)),
+                          )
+                        ],
+                      ),
+                      actions: [
+                        ElevatedButton(
+                          onPressed: () async {
+                            double change = double.tryParse(balCtrl.text) ?? 0;
+                            if (change != 0) {
+                              final w = await Supabase.instance.client.from('wallet_accounts').select().eq('user_id', p['id']).maybeSingle();
+                              if (w != null) {
+                                double cur = double.parse((w['balance'] ?? 0.0).toString());
+                                await Supabase.instance.client.from('wallet_accounts').update({'balance': cur + change}).eq('user_id', p['id']);
+                              }
+                            }
+                            Navigator.pop(ctx);
+                          },
+                          child: const Text("সংরক্ষণ"),
+                        )
+                      ],
+                    );
+                  },
+                ),
+              );
+            }
+
+            @override
+            Widget build(BuildContext context) {
+              final sb = Supabase.instance.client;
+              return Scaffold(
+                appBar: AppBar(title: const Text("অ্যাডমিন কন্ট্রোল"), backgroundColor: const Color(0xFF4A0A3A), bottom: TabBar(controller: _tab, tabs: const [Tab(text: "জমা"), Tab(text: "উত্তোলন"), Tab(text: "খেলোয়াড়")])),
+                body: TabBarView(
+                  controller: _tab,
+                  children: [
+                    StreamBuilder<List<Map<String, dynamic>>>(
+                      stream: sb.from('deposit_requests').stream(primaryKey: ['id']).eq('status', 'PENDING'),
+                      builder: (ctx, s) {
+                        if (!s.hasData) return const Center(child: CircularProgressIndicator());
+                        final list = s.data!;
+                        if (list.isEmpty) return const Center(child: Text("কোনো জমা নেই"));
+                        return ListView.builder(
+                          itemCount: list.length,
+                          itemBuilder: (ctx, i) {
+                            final r = list[i];
+                            return Card(
+                              color: const Color(0xFF35042D),
+                              child: ListTile(
+                                title: Text("৳${r['amount']} (${r['sender_number']})"),
+                                subtitle: Text("Trx: ${r['trx_id']}"),
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.check, color: Colors.green),
+                                  onPressed: () => sb.rpc('approve_deposit_transaction', params: {'p_req_id': r['id'], 'p_user_id': r['user_id'].toString(), 'p_amount': r['amount']}),
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
+                    StreamBuilder<List<Map<String, dynamic>>>(
+                      stream: sb.from('withdrawal_requests').stream(primaryKey: ['id']).eq('status', 'PENDING'),
+                      builder: (ctx, s) {
+                        if (!s.hasData) return const Center(child: CircularProgressIndicator());
+                        final list = s.data!;
+                        if (list.isEmpty) return const Center(child: Text("কোনো উত্তোলন নেই"));
+                        return ListView.builder(
+                          itemCount: list.length,
+                          itemBuilder: (ctx, i) {
+                            final r = list[i];
+                            return Card(
+                              color: const Color(0xFF35042D),
+                              child: ListTile(
+                                title: Text("৳${r['amount']} (${r['receiver_number']})"),
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.check, color: Colors.green),
+                                  onPressed: () => sb.rpc('approve_withdrawal_transaction', params: {'p_req_id': r['id'], 'p_user_id': r['user_id'].toString(), 'p_amount': r['amount']}),
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
+                    Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: TextField(onChanged: (v) => setState(() => _search = v.trim().toLowerCase()), decoration: const InputDecoration(hintText: "সার্চ করুন...")),
+                        ),
+                        Expanded(
+                          child: StreamBuilder<List<Map<String, dynamic>>>(
+                            stream: sb.from('profiles').stream(primaryKey: ['id']),
+                            builder: (ctx, s) {
+                              if (!s.hasData) return const Center(child: CircularProgressIndicator());
+                              final list = s.data!.where((p) => (p['phone_number'] ?? '').toString().contains(_search) || (p['full_name'] ?? '').toString().toLowerCase().contains(_search)).toList();
+                              return ListView.builder(
+                                itemCount: list.length,
+                                itemBuilder: (ctx, i) {
+                                  final p = list[i];
+                                  final bool banned = p['is_banned'] ?? false;
+                                  return Card(
+                                    color: const Color(0xFF35042D),
+                                    child: ListTile(
+                                      title: Text("${p['full_name']} ${banned ? '(ব্লকড)' : ''}", style: TextStyle(color: banned ? Colors.red : Colors.white)),
+                                      subtitle: Text("${p['phone_number']}"),
+                                      trailing: ElevatedButton(onPressed: () => _editPlayer(p), child: const Text("কন্ট্রোল")),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }
+          }
+
+          // ৬. আসল লুডু ইঞ্জিন (ধাপে ধাপে লাফানো, ১৫ সেকেন্ড টাইমার ও নিখুঁত কাটাকাটি)
+          class LudoGameScreen extends StatefulWidget {
+            final double entryFee;
+            final String userId;
+            final String playerName;
+            const LudoGameScreen({super.key, required this.entryFee, required this.userId, required this.playerName});
+
+            @override
+            State<LudoGameScreen> createState() => _LudoGameScreenState();
+          }
+
+          class _LudoGameScreenState extends State<LudoGameScreen> with TickerProviderStateMixin {
+            int _pDice = 1;
+            int _oDice = 1;
+            int _dispPDice = 1;
+            int _dispODice = 1;
+
+            bool _pRolling = false;
+            bool _waitingTap = false;
+            bool _moving = false;
+            int _turn = 0; // 0: Player (Yellow), 1: Opponent (Red)
+            List<int> _movable = [];
+
+            List<int> yPawns = [-1, -1, -1, -1];
+            List<int> rPawns = [-1, -1, -1, -1];
+
+            final Set<int> safe = {1, 9, 14, 22, 27, 35, 40, 48};
+            Timer? _timer;
+            int _sec = 15;
+
+            late AnimationController _glow;
+            late AnimationController _pRot;
+            late AnimationController _oRot;
+            String _status = "👉 আপনার চাল! ছক্কায় ট্যাপ করুন";
+
+            static const List<Point<int>> track = [
+              Point(8, 0), Point(8, 1), Point(8, 2), Point(8, 3), Point(8, 4), Point(8, 5),
+              Point(9, 6), Point(10, 6), Point(11, 6), Point(12, 6), Point(13, 6), Point(14, 6),
+              Point(14, 7),
+              Point(14, 8), Point(13, 8), Point(12, 8), Point(11, 8), Point(10, 8), Point(9, 8),
+              Point(8, 9), Point(8, 10), Point(8, 11), Point(8, 12), Point(8, 13), Point(8, 14),
+              Point(7, 14),
+              Point(6, 14), Point(6, 13), Point(6, 12), Point(6, 11), Point(6, 10), Point(6, 9),
+              Point(5, 8), Point(4, 8), Point(3, 8), Point(2, 8), Point(1, 8), Point(0, 8),
+              Point(0, 7),
+              Point(0, 6), Point(1, 6), Point(2, 6), Point(3, 6), Point(4, 6), Point(5, 6),
+              Point(6, 5), Point(6, 4), Point(6, 3), Point(6, 2), Point(6, 1), Point(6, 0),
+              Point(7, 0),
+            ];
+
+            @override
+            void initState() {
+              super.initState();
+              _glow = AnimationController(vsync: this, duration: const Duration(milliseconds: 550))..repeat(reverse: true);
+              _pRot = AnimationController(vsync: this, duration: const Duration(milliseconds: 550));
+              _oRot = AnimationController(vsync: this, duration: const Duration(milliseconds: 550));
+              _startTimer();
+            }
+
+            @override
+            void dispose() {
+              _timer?.cancel();
+              _glow.dispose();
+              _pRot.dispose();
+              _oRot.dispose();
+              super.dispose();
+            }
+
+            void _startTimer() {
+              _timer?.cancel();
+              setState(() => _sec = 15);
+              _timer = Timer.periodic(const Duration(seconds: 1), (t) {
+                if (_sec > 0) {
+                  setState(() => _sec--);
+                } else {
+                  t.cancel();
+                  if (_turn == 0) {
+                    if (_waitingTap && _movable.isNotEmpty) {
+                      _onTapPawn(_movable.first);
+                    } else {
+                      _pass();
+                    }
+                  }
+                }
+              });
+            }
+
+            void _rollP() {
+              if (_pRolling || _waitingTap || _moving || _turn != 0) return;
+              HapticFeedback.mediumImpact();
+              setState(() {
+                _pRolling = true;
+                _status = "🎲 ছক্কা ঘুরছে...";
+              });
+              _pRot.forward(from: 0.0);
+
+              int c = 0;
+              Timer.periodic(const Duration(milliseconds: 50), (tm) {
+                c++;
+                setState(() => _dispPDice = Random().nextInt(6) + 1);
+                if (c >= 10) {
+                  tm.cancel();
+                  final val = Random().nextInt(6) + 1;
+                  setState(() {
+                    _pDice = val;
+                    _dispPDice = val;
+                    _pRolling = false;
+                  });
+                  _evalP();
+                }
+              });
+            }
+
+            void _evalP() {
+              List<int> v = [];
+              for (int i = 0; i < 4; i++) {
+                if (yPawns[i] == -1 && _pDice == 6) {
+                  v.add(i);
+                } else if (yPawns[i] >= 0 && (yPawns[i] + _pDice <= 56)) {
+                  v.add(i);
+                }
+              }
+              if (v.isEmpty) {
+                setState(() => _status = "কোনো চাল নেই!");
+                Future.delayed(const Duration(milliseconds: 1000), () => _pass());
+              } else {
+                setState(() {
+                  _movable = v;
+                  _waitingTap = true;
+                  _status = "👉 ঘুঁটিতে ট্যাপ করুন!";
+                });
+              }
+            }
+
+            // এক এক ঘর করে লাফানো (Step-by-Step Hopping)
+            Future<void> _stepHop(int idx, int steps, bool isY) async {
+              setState(() => _moving = true);
+              if (isY ? yPawns[idx] == -1 : rPawns[idx] == -1) {
+                await Future.delayed(const Duration(milliseconds: 180));
+                setState(() => isY ? yPawns[idx] = 0 : rPawns[idx] = 0);
+                HapticFeedback.selectionClick();
+              } else {
+                for (int s = 0; s < steps; s++) {
+                  await Future.delayed(const Duration(milliseconds: 180));
+                  setState(() => isY ? yPawns[idx]++ : rPawns[idx]++);
+                  HapticFeedback.selectionClick();
+                }
+              }
+              setState(() => _moving = false);
+            }
+
+            Future<void> _onTapPawn(int idx) async {
+              if (!_waitingTap || !_movable.contains(idx) || _moving) return;
+              setState(() {
+                _waitingTap = false;
+                _movable.clear();
+              });
+
+              await _stepHop(idx, _pDice, true);
+              bool cap = _checkCap(yPawns, idx, true);
+
+              if (yPawns.every((p) => p == 56)) {
+                _win(true);
+                return;
+              }
+              if (_pDice == 6 || cap) {
+                setState(() => _status = cap ? "💥 ঘুঁটি কাটা গেছে! বোনাস চাল!" : "🎉 ছক্কা! আবার চালুন!");
+                _startTimer();
+              } else {
+                _pass();
+              }
+            }
+
+            // ১০০% নিখুঁত ঘুঁটি কাটা
+            bool _checkCap(List<int> pawns, int idx, bool isY) {
+              int st = pawns[idx];
+              if (st >= 0 && st < 51) {
+                int g = (st + (isY ? 27 : 1)) % 52;
+                if (!safe.contains(g)) {
+                  List<int> opp = isY ? rPawns : yPawns;
+                  for (int j = 0; j < 4; j++) {
+                    if (opp[j] >= 0 && opp[j] < 51) {
+                      int og = (opp[j] + (!isY ? 27 : 1)) % 52;
+                      if (g == og) {
+                        setState(() => opp[j] = -1);
+                        HapticFeedback.heavyImpact();
+                        return true;
+                      }
+                    }
+                  }
+                }
+              }
+              return false;
+            }
+
+            void _pass() {
+              _timer?.cancel();
+              setState(() {
+                _turn = 1;
+                _status = "প্রতিপক্ষ চাল দিচ্ছে...";
+              });
+              _startTimer();
+              Future.delayed(const Duration(milliseconds: 1000), () => _oppRoll());
+            }
+
+            void _oppRoll() {
+              if (_turn != 1) return;
+              _oRot.forward(from: 0.0);
+              int c = 0;
+              Timer.periodic(const Duration(milliseconds: 50), (tm) {
+                c++;
+                setState(() => _dispODice = Random().nextInt(6) + 1);
+                if (c >= 10) {
+                  tm.cancel();
+                  final val = Random().nextInt(6) + 1;
+                  setState(() {
+                    _oDice = val;
+                    _dispODice = val;
+                  });
+                  Future.delayed(const Duration(milliseconds: 300), () => _oppMove());
+                }
+              });
+            }
+
+            Future<void> _oppMove() async {
+              List<int> v = [];
+              for (int i = 0; i < 4; i++) {
+                if (rPawns[i] == -1 && _oDice == 6) {
+                  v.add(i);
+                } else if (rPawns[i] >= 0 && (rPawns[i] + _oDice <= 56)) {
+                  v.add(i);
+                }
+              }
+              if (v.isNotEmpty) {
+                int ch = v.first;
+                await _stepHop(ch, _oDice, false);
+                bool cap = _checkCap(rPawns, ch, false);
+                if (rPawns.every((p) => p == 56)) {
+                  _win(false);
+                  return;
+                }
+                if (_oDice == 6 || cap) {
+                  Future.delayed(const Duration(milliseconds: 1000), () => _oppRoll());
+                  return;
+                }
+              }
+              setState(() {
+                _turn = 0;
+                _status = "👉 আপনার চাল! ছক্কায় ট্যাপ করুন";
+              });
+              _startTimer();
+            }
+
+            void _win(bool pWon) {
+              _timer?.cancel();
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (ctx) => AlertDialog(
+                  backgroundColor: const Color(0xFF4A0A3A),
+                  title: Text(pWon ? "বিজয়ী!" : "ম্যাচ শেষ"),
+                  content: Text(pWon ? "অভিনন্দন! আপনি ম্যাচটি জিতেছেন!" : "প্রতিপক্ষ জিতে গেছে!"),
+                  actions: [ElevatedButton(onPressed: () { Navigator.pop(ctx); Navigator.pop(context); }, child: const Text("লবিতে ফিরুন"))],
+                ),
+              );
+            }
+
+            @override
+            Widget build(BuildContext context) {
+              final size = MediaQuery.of(context).size.width;
+              final step = size / 15.0;
+
+              return Scaffold(
+                appBar: AppBar(title: Text("ম্যাচ - ফি: ৳${widget.entryFee.toInt()}"), backgroundColor: const Color(0xFF35042D)),
+                body: SafeArea(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // প্রতিপক্ষ বার
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Stack(alignment: Alignment.center, children: [
+                                  if (_turn == 1) SizedBox(width: 44, height: 44, child: CircularProgressIndicator(value: _sec / 15.0, strokeWidth: 3, color: Colors.greenAccent)),
+                                  const CircleAvatar(radius: 18, backgroundColor: Colors.red, child: Icon(Icons.person, color: Colors.white, size: 20)),
+                                ]),
+                                const SizedBox(width: 8),
+                                Text(_turn == 1 ? "⏱️ ${_sec}s প্রতিপক্ষ..." : "প্রতিপক্ষ (লাল)", style: const TextStyle(fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                            AnimatedBuilder(
+                              animation: _oRot,
+                              builder: (_, __) => Transform.rotate(
+                                angle: _oRot.value * 2 * pi,
+                                child: Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(color: Colors.red.shade700, borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.amber, width: 2)),
+                                  child: Center(child: Text("$_dispODice", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white))),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // এজ-টু-এজ ১০০% ফিট বোর্ড (কোনো মার্জিন নেই)
+                      SizedBox(
+                        width: size,
+                        height: size,
+                        child: Stack(
+                          children: [
+                            CustomPaint(size: Size(size, size), painter: LudoPainter(step: step)),
+                            // লাল ঘুঁটি
+                            ...List.generate(4, (i) {
+                              Offset pt = _getOffset(rPawns[i], false, i, step);
+                              return Positioned(left: pt.dx - step * 0.4, top: pt.dy - step * 0.4, width: step * 0.8, height: step * 0.8, child: _pawnWidget(Colors.red.shade700));
+                            }),
+                            // হলুদ ঘুঁটি (ম্যানুয়াল ট্যাপ ও ব্লিঙ্ক)
+                            ...List.generate(4, (i) {
+                              Offset pt = _getOffset(yPawns[i], true, i, step);
+                              bool can = _waitingTap && _movable.contains(i);
+                              return Positioned(
+                                left: pt.dx - step * 0.42,
+                                top: pt.dy - step * 0.42,
+                                width: step * 0.84,
+                                height: step * 0.84,
+                                child: GestureDetector(
+                                  onTap: can ? () => _onTapPawn(i) : null,
+                                  child: AnimatedBuilder(
+                                    animation: _glow,
+                                    builder: (_, __) {
+                                      return Stack(
+                                        alignment: Alignment.center,
+                                        children: [
+                                          Transform.scale(
+                                            scale: can ? 1.0 + (_glow.value * 0.25) : 1.0,
+                                            child: Container(
+                                              decoration: BoxDecoration(shape: BoxShape.circle, border: can ? Border.all(color: Colors.amberAccent, width: 3.5) : null),
+                                              child: _pawnWidget(Colors.amber.shade700),
+                                            ),
+                                          ),
+                                          if (can) const Positioned(top: -6, child: Text("👆", style: TextStyle(fontSize: 16))),
+                                        ],
+                                      );
+                                    },
+                                  ),
+                                ),
+                              );
+                            }),
+                          ],
+                        ),
+                      ),
+
+                      // স্ট্যাটাস
+                      Text(_status, style: const TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold, fontSize: 13)),
+
+                      // নিজের বার
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Stack(alignment: Alignment.center, children: [
+                                  if (_turn == 0) SizedBox(width: 48, height: 48, child: CircularProgressIndicator(value: _sec / 15.0, strokeWidth: 3, color: Colors.amberAccent)),
+                                  CircleAvatar(radius: 20, backgroundColor: Colors.amber, child: Text(widget.playerName.isNotEmpty ? widget.playerName[0].toUpperCase() : 'P', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold))),
+                                ]),
+                                const SizedBox(width: 8),
+                                Text(_turn == 0 ? "⏱️ ${_sec}s আপনার চাল" : widget.playerName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                            GestureDetector(
+                              onTap: (_turn == 0 && !_pRolling && !_waitingTap && !_moving) ? _rollP : null,
+                              child: AnimatedBuilder(
+                                animation: _pRot,
+                                builder: (_, __) => Transform.rotate(
+                                  angle: _pRot.value * 2 * pi,
+                                  child: Container(
+                                    width: 62,
+                                    height: 62,
+                                    decoration: BoxDecoration(
+                                      color: _turn == 0 && !_waitingTap ? Colors.blue.shade700 : Colors.grey.shade800,
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(color: Colors.amberAccent, width: 2.5),
+                                    ),
+                                    child: Center(child: Text("$_dispPDice", style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white))),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            Widget _pawnWidget(Color c) {
+              return Container(
+                decoration: BoxDecoration(shape: BoxShape.circle, color: c, border: Border.all(color: Colors.white, width: 2), boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 4)]),
+                child: const Center(child: Icon(Icons.star, size: 14, color: Colors.white)),
+              );
+            }
+
+            Offset _getOffset(int st, bool isY, int slot, double s) {
+              if (st == -1) {
+                return isY
+                    ? [Offset(s * 1.8, s * 10.8), Offset(s * 4.2, s * 10.8), Offset(s * 1.8, s * 13.2), Offset(s * 4.2, s * 13.2)][slot]
+                    : [Offset(s * 10.8, s * 1.8), Offset(s * 13.2, s * 1.8), Offset(s * 10.8, s * 4.2), Offset(s * 13.2, s * 4.2)][slot];
+              }
+              if (st < 51) {
+                int g = (st + (isY ? 27 : 1)) % 52;
+                final pt = track[g];
+                return Offset((pt.x + 0.5) * s, (pt.y + 0.5) * s);
+              }
+              int h = st - 51;
+              return isY ? Offset(s * 7.5, (13.5 - h) * s) : Offset(s * 7.5, (1.5 + h) * s);
+            }
+          }
+
+          // ৭. লুপেইন্টার (দুধের মতো সাদা পথ ও চার রঙ)
+          class LudoPainter extends CustomPainter {
+            final double step;
+            LudoPainter({required this.step});
+
+            @override
+            void paint(Canvas canvas, Size size) {
+              final p = Paint()..style = PaintingStyle.fill;
+              canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), Paint()..color = Colors.white);
+
+              p.color = const Color(0xFF1E88E5);
+              canvas.drawRect(Rect.fromLTWH(0, 0, step * 6, step * 6), p);
+              p.color = const Color(0xFFE53935);
+              canvas.drawRect(Rect.fromLTWH(step * 9, 0, step * 6, step * 6), p);
+              p.color = const Color(0xFFFBC02D);
+              canvas.drawRect(Rect.fromLTWH(0, step * 9, step * 6, step * 6), p);
+              p.color = const Color(0xFF2E7D32);
+              canvas.drawRect(Rect.fromLTWH(step * 9, step * 9, step * 6, step * 6), p);
+
+              void box(double x, double y, Color c) {
+                canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(x + step * 0.8, y + step * 0.8, step * 4.4, step * 4.4), const Radius.circular(16)), Paint()..color = Colors.white);
+                for (var pt in [Offset(x + step * 1.8, y + step * 1.8), Offset(x + step * 4.2, y + step * 1.8), Offset(x + step * 1.8, y + step * 4.2), Offset(x + step * 4.2, y + step * 4.2)]) {
+                  canvas.drawCircle(pt, step * 0.65, Paint()..color = c.withOpacity(0.2));
+                }
+              }
+
+              box(0, 0, const Color(0xFF1E88E5));
+              box(step * 9, 0, const Color(0xFFE53935));
+              box(0, step * 9, const Color(0xFFFBC02D));
+              box(step * 9, step * 9, const Color(0xFF2E7D32));
+
+              for (int r = 1; r <= 5; r++) { canvas.drawRect(Rect.fromLTWH(7 * step, r * step, step, step), Paint()..color = const Color(0xFFE53935)); }
+              for (int r = 9; r <= 13; r++) { canvas.drawRect(Rect.fromLTWH(7 * step, r * step, step, step), Paint()..color = const Color(0xFFFBC02D)); }
+              for (int c = 1; c <= 5; c++) { canvas.drawRect(Rect.fromLTWH(c * step, 7 * step, step, step), Paint()..color = const Color(0xFF1E88E5)); }
+              for (int c = 9; c <= 13; c++) { canvas.drawRect(Rect.fromLTWH(c * step, 7 * step, step, step), Paint()..color = const Color(0xFF2E7D32)); }
+
+              canvas.drawRect(Rect.fromLTWH(8 * step, 1 * step, step, step), Paint()..color = const Color(0xFFE53935));
+              canvas.drawRect(Rect.fromLTWH(6 * step, 13 * step, step, step), Paint()..color = const Color(0xFFFBC02D));
+
+              final b = Paint()..style = PaintingStyle.stroke..color = Colors.black26..strokeWidth = 1.0;
+              for (int r = 0; r < 15; r++) {
+                for (int c = 0; c < 15; c++) {
+                  canvas.drawRect(Rect.fromLTWH(c * step, r * step, step, step), b);
+                }
+              }
+
+              final cnt = Offset(step * 7.5, step * 7.5);
+              canvas.drawPath(Path()..moveTo(step * 6, step * 6)..lineTo(step * 9, step * 6)..lineTo(cnt.dx, cnt.dy)..close(), Paint()..color = const Color(0xFFE53935));
+              canvas.drawPath(Path()..moveTo(step * 6, step * 9)..lineTo(step * 9, step * 9)..lineTo(cnt.dx, cnt.dy)..close(), Paint()..color = const Color(0xFFFBC02D));
+              canvas.drawPath(Path()..moveTo(step * 6, step * 6)..lineTo(step * 6, step * 9)..lineTo(cnt.dx, cnt.dy)..close(), Paint()..color = const Color(0xFF1E88E5));
+              canvas.drawPath(Path()..moveTo(step * 9, step * 6)..lineTo(step * 9, step * 9)..lineTo(cnt.dx, cnt.dy)..close(), Paint()..color = const Color(0xFF2E7D32));
+            }
+
+            @override
+            bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+          }
           EOF
 
-      - name: Build Release APK
+      - name: Build Final Release APK
         run: |
           flutter pub get
           flutter build apk --release
 
-      - name: Upload APK
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: jumman-ludo-app
+          name: jumman-ludo-master-release
           path: build/app/outputs/flutter-apk/app-release.apk

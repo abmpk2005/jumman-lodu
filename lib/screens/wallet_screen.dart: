@@ -1,0 +1,170 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+class WalletScreen extends StatefulWidget {
+  final String phone;
+  final String userId;
+  final double balance;
+  const WalletScreen({super.key, required this.phone, required this.userId, required this.balance});
+  @override
+  State<WalletScreen> createState() => _WalletScreenState();
+}
+
+class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabCtrl;
+  final _depAmt = TextEditingController();
+  final _trxId = TextEditingController();
+  final _withAmt = TextEditingController();
+  final _withPhone = TextEditingController();
+  String _depMethod = 'BKASH';
+  bool _loading = false;
+  final String officialNumber = '01774229222';
+
+  @override
+  void initState() {
+    super.initState();
+    _tabCtrl = TabController(length: 2, vsync: this);
+    _withPhone.text = widget.phone;
+  }
+
+  Future<void> _submitDep() async {
+    final amt = double.tryParse(_depAmt.text) ?? 0;
+    final trx = _trxId.text.trim();
+    if (amt < 10 || trx.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("সঠিক পরিমাণ ও TrxID দিন")));
+      return;
+    }
+    setState(() => _loading = true);
+    try {
+      await Supabase.instance.client.from('deposit_requests').insert({
+        'user_id': widget.userId,
+        'amount': amt,
+        'payment_method': _depMethod,
+        'sender_number': widget.phone,
+        'trx_id': trx,
+        'status': 'PENDING',
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ডিপোজিট অনুরোধ সফলভাবে পাঠানো হয়েছে!")));
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("ত্রুটি: $e")));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _submitWith() async {
+    final amt = double.tryParse(_withAmt.text) ?? 0;
+    // ⚠️ সর্বনিম্ন উত্তোলন ৩০০ টাকা
+    if (amt < 300 || amt > widget.balance) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("সর্বনিম্ন ৩০০ টাকা উত্তোলনযোগ্য এবং ব্যালেন্সের সমান বা কম হতে হবে")));
+      return;
+    }
+    setState(() => _loading = true);
+    try {
+      await Supabase.instance.client.from('withdrawal_requests').insert({
+        'user_id': widget.userId,
+        'amount': amt,
+        'payment_method': 'BKASH',
+        'receiver_number': _withPhone.text,
+        'status': 'PENDING',
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("উত্তোলন অনুরোধ সফলভাবে পাঠানো হয়েছে!")));
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("ত্রুটি: $e")));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("ওয়ালেট ও লেনদেন"),
+        backgroundColor: const Color(0xFF4A0A3A),
+        bottom: TabBar(controller: _tabCtrl, indicatorColor: Colors.amber, tabs: const [Tab(text: "টাকা জমা"), Tab(text: "উত্তোলন")]),
+      ),
+      body: TabBarView(
+        controller: _tabCtrl,
+        children: [
+          // ডিপোজিট ট্যাব
+          SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(color: const Color(0xFF35042D), borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.amber)),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text("Send Money নম্বর (বিকাশ/নগদ):", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                          const SizedBox(height: 4),
+                          Text(officialNumber, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.amber)),
+                        ],
+                      ),
+                      // ১-ক্লিক নম্বর কপি বাটন
+                      IconButton(
+                        icon: const Icon(Icons.copy, color: Colors.amberAccent, size: 28),
+                        tooltip: "নম্বর কপি করুন",
+                        onPressed: () {
+                          Clipboard.setData(ClipboardData(text: officialNumber));
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("নম্বর কপি করা হয়েছে!"), duration: Duration(seconds: 1)));
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: _depMethod,
+                  dropdownColor: const Color(0xFF35042D),
+                  decoration: const InputDecoration(labelText: "পেমেন্ট মেথড", filled: true, fillColor: Color(0xFF35042D)),
+                  items: const [DropdownMenuItem(value: 'BKASH', child: Text("বিকাশ")), DropdownMenuItem(value: 'NAGAD', child: Text("নগদ"))],
+                  onChanged: (v) => setState(() => _depMethod = v!),
+                ),
+                const SizedBox(height: 10),
+                TextField(controller: _depAmt, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "টাকার পরিমাণ", filled: true, fillColor: Color(0xFF35042D))),
+                const SizedBox(height: 10),
+                TextField(controller: _trxId, decoration: const InputDecoration(labelText: "Transaction ID (TrxID)", filled: true, fillColor: Color(0xFF35042D))),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.amber, minimumSize: const Size(double.infinity, 48)),
+                  onPressed: _loading ? null : _submitDep,
+                  child: _loading ? const CircularProgressIndicator(color: Colors.black) : const Text("জমা অনুরোধ পাঠান", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ),
+          // উত্তোলন ট্যাব (মিনিমাম ৩০০)
+          SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                TextField(controller: _withAmt, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "উত্তোলনের পরিমাণ (মিনিমাম ৳৩০০)", filled: true, fillColor: Color(0xFF35042D))),
+                const SizedBox(height: 10),
+                TextField(controller: _withPhone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: "বিকাশ/নগদ নম্বর", filled: true, fillColor: Color(0xFF35042D))),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.greenAccent, minimumSize: const Size(double.infinity, 48)),
+                  onPressed: _loading ? null : _submitWith,
+                  child: const Text("উত্তোলন করুন", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

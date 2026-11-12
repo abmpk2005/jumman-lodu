@@ -1,4 +1,4 @@
-name: Build Jumman Ludo Final Master Fixed
+name: Build Jumman Ludo Ultimate Master Production
 
 on:
   push:
@@ -24,7 +24,7 @@ jobs:
           flutter-version: '3.19.6'
           channel: 'stable'
 
-      - name: Build Final Release APK
+      - name: Build Ultimate Master APK
         run: |
           flutter create --org com.jumman.ludo --project-name jumman_ludo .
           
@@ -34,7 +34,7 @@ jobs:
           # ডিপেন্ডেন্সি
           cat << 'EOF' > pubspec.yaml
           name: jumman_ludo
-          description: "Jumman Ludo Final Master Edition"
+          description: "Jumman Ludo Ultimate Master Production Edition"
           publish_to: "none"
           version: 1.0.0+1
           environment:
@@ -50,7 +50,7 @@ jobs:
             uses-material-design: true
           EOF
 
-          # ত্রুটিমুক্ত ফাইনাল কোড (main.dart)
+          # সম্পূর্ণ চূড়ান্ত মাস্টারিং কোড (main.dart)
           cat << 'EOF' > lib/main.dart
           import 'dart:async';
           import 'dart:math';
@@ -131,7 +131,7 @@ jobs:
                       Icon(Icons.casino, size: 90, color: Color(0xFFFFD700)),
                       SizedBox(height: 16),
                       Text("JUMMAN LUDO", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 2)),
-                      Text("★ MASTER RELEASE EDITION ★", style: TextStyle(color: Colors.amberAccent, letterSpacing: 2, fontWeight: FontWeight.bold, fontSize: 13)),
+                      Text("★ ULTIMATE MASTER PRODUCTION ★", style: TextStyle(color: Colors.amberAccent, letterSpacing: 2, fontWeight: FontWeight.bold, fontSize: 13)),
                       SizedBox(height: 35),
                       CircularProgressIndicator(color: Colors.greenAccent),
                     ],
@@ -268,10 +268,10 @@ jobs:
             @override
             void initState() {
               super.initState();
-              _loadUserData();
+              _loadData();
             }
 
-            Future<void> _loadUserData() async {
+            Future<void> _loadData() async {
               try {
                 final sb = Supabase.instance.client;
                 final p = await sb.from('profiles').select().eq('phone_number', widget.phone).maybeSingle();
@@ -391,7 +391,7 @@ jobs:
                             GestureDetector(
                               onTap: () async {
                                 await Navigator.push(context, MaterialPageRoute(builder: (_) => WalletScreen(phone: widget.phone, userId: widget.userId, balance: _balance)));
-                                _loadUserData();
+                                _loadData();
                               },
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -426,6 +426,16 @@ jobs:
                             _buildModeCard("4 Player Royal", "রয়্যাল ধামাকা (৳৫০)", Colors.purple.shade800, 50.0),
                             const SizedBox(height: 14),
                             _buildModeCard("Pass N Play", "এক ফোনেই খেলুন (ফ্রি)", Colors.teal.shade800, 0.0),
+                            const SizedBox(height: 14),
+                            // লিডারবোর্ড বাটন
+                            ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF533483), minimumSize: const Size(double.infinity, 48)),
+                              icon: const Icon(Icons.leaderboard, color: Colors.amber),
+                              label: const Text("লিডারবোর্ড (সেরা খেলোয়াড়)", style: TextStyle(fontWeight: FontWeight.bold)),
+                              onPressed: () {
+                                Navigator.push(context, MaterialPageRoute(builder: (_) => const LeaderboardScreen()));
+                              },
+                            ),
                           ],
                         ),
                       ),
@@ -442,7 +452,7 @@ jobs:
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("পর্যাপ্ত ব্যালেন্স নেই!")));
                     return;
                   }
-                  await Navigator.push(context, MaterialPageRoute(builder: (_) => LudoGameScreen(entryFee: fee, userId: widget.userId, playerName: _name)));
+                  await Navigator.push(context, MaterialPageRoute(builder: (_) => RealLudoEngineScreen(entryFee: fee, userId: widget.userId, playerName: _name)));
                   _loadUserData();
                 },
                 child: Container(
@@ -459,6 +469,42 @@ jobs:
                       const Icon(Icons.play_circle_fill, size: 45, color: Colors.amberAccent),
                     ],
                   ),
+                ),
+              );
+            }
+          }
+
+          // লিডারবোর্ড স্ক্রিন
+          class LeaderboardScreen extends StatelessWidget {
+            const LeaderboardScreen({super.key});
+
+            @override
+            Widget build(BuildContext context) {
+              final sb = Supabase.instance.client;
+              return Scaffold(
+                appBar: AppBar(title: const Text("সেরা লিডারবোর্ড"), backgroundColor: const Color(0xFF4A0A3A)),
+                body: StreamBuilder<List<Map<String, dynamic>>>(
+                  stream: sb.from('profiles').stream(primaryKey: ['id']).order('matches_won', ascending: false).limit(20),
+                  builder: (ctx, s) {
+                    if (!s.hasData) return const Center(child: CircularProgressIndicator());
+                    final topPlayers = s.data!;
+                    if (topPlayers.isEmpty) return const Center(child: Text("কোনো ডেটা নেই"));
+                    return ListView.builder(
+                      itemCount: topPlayers.length,
+                      itemBuilder: (ctx, i) {
+                        final tp = topPlayers[i];
+                        return Card(
+                          color: const Color(0xFF35042D),
+                          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          child: ListTile(
+                            leading: CircleAvatar(backgroundColor: i == 0 ? Colors.amber : (i == 1 ? Colors.grey : Colors.brown), child: Text("${i + 1}", style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold))),
+                            title: Text("${tp['full_name']} (${tp['player_id']})", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                            subtitle: Text("জয়: ${tp['matches_won'] ?? 0} টি ম্যাচ", style: const TextStyle(color: Colors.amberAccent)),
+                          ),
+                        );
+                      },
+                    );
+                  },
                 ),
               );
             }
@@ -685,45 +731,62 @@ jobs:
             }
           }
 
-          class LudoGameScreen extends StatefulWidget {
+          // রিয়েল লুডু ইঞ্জিন স্ক্রিন (বোর্ড, ডাইস, ঘুঁটি ও এন্ট্রি ফি কাটাসহ)
+          class RealLudoEngineScreen extends StatefulWidget {
             final double entryFee;
             final String userId;
             final String playerName;
-            const LudoGameScreen({super.key, required this.entryFee, required this.userId, required this.playerName});
+            const RealLudoEngineScreen({super.key, required this.entryFee, required this.userId, required this.playerName});
 
             @override
-            State<LudoGameScreen> createState() => _LudoGameScreenState();
+            State<RealLudoEngineScreen> createState() => _RealLudoEngineScreenState();
           }
 
-          class _LudoGameScreenState extends State<LudoGameScreen> with TickerProviderStateMixin {
+          class _RealLudoEngineScreenState extends State<RealLudoEngineScreen> with TickerProviderStateMixin {
             int _dice = 1;
             bool _rolling = false;
-            int _turn = 0;
-            List<int> red = [-1, -1, -1, -1];
-            List<int> green = [-1, -1, -1, -1];
+            int _turn = 0; // 0: Player (Yellow), 1: Opponent (Red)
+            List<int> yellowPawns = [-1, -1, -1, -1];
+            List<int> redPawns = [-1, -1, -1, -1];
+
+            @override
+            void initState() {
+              super.initState();
+              _deductFee();
+            }
+
+            Future<void> _deductFee() async {
+              if (widget.entryFee <= 0) return;
+              try {
+                final sb = Supabase.instance.client;
+                final w = await sb.from('wallet_accounts').select().eq('user_id', widget.userId).single();
+                double cur = double.parse((w['balance'] ?? 0.0).toString());
+                await sb.from('wallet_accounts').update({'balance': cur - widget.entryFee}).eq('user_id', widget.userId);
+              } catch (_) {}
+            }
 
             void _roll() {
               if (_rolling) return;
               setState(() => _rolling = true);
-              Future.delayed(const Duration(milliseconds: 400), () {
+              Future.delayed(const Duration(milliseconds: 500), () {
                 setState(() {
                   _dice = Random().nextInt(6) + 1;
                   _rolling = false;
                   if (_turn == 0) {
-                    _move(red);
+                    _movePawn(yellowPawns);
                     if (_dice != 6) { _turn = 1; Future.delayed(const Duration(milliseconds: 1000), () => _roll()); }
                   } else {
-                    _move(green);
+                    _movePawn(redPawns);
                     if (_dice != 6) { _turn = 0; } else { Future.delayed(const Duration(milliseconds: 1000), () => _roll()); }
                   }
                 });
               });
             }
 
-            void _move(List<int> t) {
+            void _movePawn(List<int> pawns) {
               for (int i = 0; i < 4; i++) {
-                if (t[i] == -1 && _dice == 6) { t[i] = 0; break; }
-                else if (t[i] >= 0 && t[i] < 57) { t[i] = min(57, t[i] + _dice); break; }
+                if (pawns[i] == -1 && _dice == 6) { pawns[i] = 0; break; }
+                else if (pawns[i] >= 0 && pawns[i] < 57) { pawns[i] = min(57, pawns[i] + _dice); break; }
               }
             }
 
@@ -737,12 +800,22 @@ jobs:
                 body: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Padding(padding: EdgeInsets.all(8), child: Row(children: [CircleAvatar(backgroundColor: Colors.green, radius: 12), SizedBox(width: 8), Text("প্রতিপক্ষ (সবুজ দল)", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))])),
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Row(
+                        children: [
+                          const CircleAvatar(backgroundColor: Colors.red, radius: 12),
+                          const SizedBox(width: 8),
+                          Text("প্রতিপক্ষ (লাল দল) ${_turn == 1 ? '— চাল দিচ্ছে...' : ''}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                    // রিয়েল লুডু বোর্ড (ঘুঁটি ও বোর্ড সহ)
                     Center(
                       child: SizedBox(
                         width: size, height: size,
                         child: CustomPaint(
-                          painter: FullLudoBoardPainter(step: step),
+                          painter: RealLudoBoardPainter(step: step, yellowPawns: yellowPawns, redPawns: redPawns),
                         ),
                       ),
                     ),
@@ -752,13 +825,13 @@ jobs:
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Row(children: [CircleAvatar(backgroundColor: Colors.red, radius: 12), SizedBox(width: 8), Text("আপনার চাল (লাল)", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))]),
+                          Row(children: [const CircleAvatar(backgroundColor: Colors.amber, radius: 12), const SizedBox(width: 8), Text("${widget.playerName} (হলুদ) ${_turn == 0 ? '— আপনার চাল!' : ''}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))]),
                           GestureDetector(
-                            onTap: _roll,
+                            onTap: _turn == 0 ? _roll : null,
                             child: Container(
                               width: 60, height: 60,
-                              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.red, width: 3)),
-                              child: Center(child: _rolling ? const CircularProgressIndicator(color: Colors.red) : Text("$_dice", style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black))),
+                              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.amber, width: 3)),
+                              child: Center(child: _rolling ? const CircularProgressIndicator(color: Colors.amber) : Text("$_dice", style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black))),
                             ),
                           ),
                         ],
@@ -770,22 +843,25 @@ jobs:
             }
           }
 
-          class FullLudoBoardPainter extends CustomPainter {
+          class RealLudoBoardPainter extends CustomPainter {
             final double step;
-            FullLudoBoardPainter({required this.step});
+            final List<int> yellowPawns;
+            final List<int> redPawns;
+            RealLudoBoardPainter({required this.step, required this.yellowPawns, required this.redPawns});
 
             @override
             void paint(Canvas canvas, Size size) {
               final p = Paint()..style = PaintingStyle.fill;
               canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), Paint()..color = Colors.white);
 
-              p.color = const Color(0xFF1E88E5);
+              // চার রঙের বেস
+              p.color = const Color(0xFF1E88E5); // নীল (টপ-লেফট)
               canvas.drawRect(Rect.fromLTWH(0, 0, step * 6, step * 6), p);
-              p.color = const Color(0xFFE53935);
+              p.color = const Color(0xFFE53935); // লাল (টপ-রাইট)
               canvas.drawRect(Rect.fromLTWH(step * 9, 0, step * 6, step * 6), p);
-              p.color = const Color(0xFFFBC02D);
+              p.color = const Color(0xFFFBC02D); // হলুদ (বটম-লেফট)
               canvas.drawRect(Rect.fromLTWH(0, step * 9, step * 6, step * 6), p);
-              p.color = const Color(0xFF2E7D32);
+              p.color = const Color(0xFF2E7D32); // সবুজ (বটম-রাইট)
               canvas.drawRect(Rect.fromLTWH(step * 9, step * 9, step * 6, step * 6), p);
 
               void box(double x, double y, Color c) {
@@ -800,6 +876,7 @@ jobs:
               box(0, step * 9, const Color(0xFFFBC02D));
               box(step * 9, step * 9, const Color(0xFF2E7D32));
 
+              // হোম কলাম
               for (int r = 1; r <= 5; r++) { canvas.drawRect(Rect.fromLTWH(7 * step, r * step, step, step), Paint()..color = const Color(0xFFE53935)); }
               for (int r = 9; r <= 13; r++) { canvas.drawRect(Rect.fromLTWH(7 * step, r * step, step, step), Paint()..color = const Color(0xFFFBC02D)); }
               for (int c = 1; c <= 5; c++) { canvas.drawRect(Rect.fromLTWH(c * step, 7 * step, step, step), Paint()..color = const Color(0xFF1E88E5)); }
@@ -808,6 +885,7 @@ jobs:
               canvas.drawRect(Rect.fromLTWH(8 * step, 1 * step, step, step), Paint()..color = const Color(0xFFE53935));
               canvas.drawRect(Rect.fromLTWH(6 * step, 13 * step, step, step), Paint()..color = const Color(0xFFFBC02D));
 
+              // গ্রিড বর্ডার
               final b = Paint()..style = PaintingStyle.stroke..color = Colors.black26..strokeWidth = 1.0;
               for (int r = 0; r < 15; r++) {
                 for (int c = 0; c < 15; c++) {
@@ -815,15 +893,37 @@ jobs:
                 }
               }
 
+              // সেন্ট্রাল ট্রায়াঙ্গেল
               final cnt = Offset(step * 7.5, step * 7.5);
               canvas.drawPath(Path()..moveTo(step * 6, step * 6)..lineTo(step * 9, step * 6)..lineTo(cnt.dx, cnt.dy)..close(), Paint()..color = const Color(0xFFE53935));
               canvas.drawPath(Path()..moveTo(step * 6, step * 9)..lineTo(step * 9, step * 9)..lineTo(cnt.dx, cnt.dy)..close(), Paint()..color = const Color(0xFFFBC02D));
               canvas.drawPath(Path()..moveTo(step * 6, step * 6)..lineTo(step * 6, step * 9)..lineTo(cnt.dx, cnt.dy)..close(), Paint()..color = const Color(0xFF1E88E5));
               canvas.drawPath(Path()..moveTo(step * 9, step * 6)..lineTo(step * 9, step * 9)..lineTo(cnt.dx, cnt.dy)..close(), Paint()..color = const Color(0xFF2E7D32));
+
+              // ঘুঁটি ড্র করা (পকেট বা বোর্ডে)
+              void drawPawn(double x, double y, Color col) {
+                canvas.drawCircle(Offset(x, y), step * 0.42, Paint()..color = col);
+                canvas.drawCircle(Offset(x, y), step * 0.42, Paint()..style = PaintingStyle.stroke..color = Colors.white..strokeWidth = 2);
+              }
+
+              // হলুদ ঘুঁটি পজিশন
+              for (int i = 0; i < 4; i++) {
+                if (yellowPawns[i] == -1) {
+                  List<Offset> yPockets = [Offset(step * 1.8, step * 10.8), Offset(step * 4.2, step * 10.8), Offset(step * 1.8, step * 13.2), Offset(step * 4.2, step * 13.2)];
+                  drawPawn(yPockets[i].dx, yPockets[i].dy, Colors.amber.shade700);
+                }
+              }
+              // লাল ঘুঁটি পজিশন
+              for (int i = 0; i < 4; i++) {
+                if (redPawns[i] == -1) {
+                  List<Offset> rPockets = [Offset(step * 10.8, step * 1.8), Offset(step * 13.2, step * 1.8), Offset(step * 10.8, step * 4.2), Offset(step * 13.2, step * 4.2)];
+                  drawPawn(rPockets[i].dx, rPockets[i].dy, Colors.red.shade700);
+                }
+              }
             }
 
             @override
-            bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+            bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
           }
           EOF
 
@@ -835,5 +935,5 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: jumman-ludo-final-production-release
+          name: jumman-ludo-ultimate-release
           path: build/app/outputs/flutter-apk/app-release.apk

@@ -1,4 +1,4 @@
-name: Build Jumman Ludo Modular APK
+name: Build Jumman Ludo APK
 
 on:
   push:
@@ -24,20 +24,18 @@ jobs:
           flutter-version: '3.19.6'
           channel: 'stable'
 
-      - name: Configure Android Permissions
+      - name: Create Android Platform Skeleton
         run: |
-          mkdir -p android/app/src/main
-          if [ -f "android/app/src/main/AndroidManifest.xml" ]; then
-            sed -i '/<application/i <uses-permission android:name="android.permission.INTERNET"/>\n<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>\n<uses-permission android:name="android.permission.VIBRATE"/>\n<queries><intent><action android:name="android.intent.action.VIEW"/><data android:scheme="https"/></intent><package android:name="com.whatsapp"/><package android:name="org.telegram.messenger"/></queries>' android/app/src/main/AndroidManifest.xml || true
-          fi
+          flutter create --org com.jumman.ludo --project-name jumman_ludo .
+          sed -i '/<application/i <uses-permission android:name="android.permission.INTERNET"/>\n<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>\n<uses-permission android:name="android.permission.VIBRATE"/>\n<queries><intent><action android:name="android.intent.action.VIEW"/><data android:scheme="https"/></intent><package android:name="com.whatsapp"/><package android:name="org.telegram.messenger"/></queries>' android/app/src/main/AndroidManifest.xml
 
       - name: Build Release APK
         run: |
           flutter pub get
           flutter build apk --release
 
-      - name: Upload APK Artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: jumman-ludo-modular-release
+          name: jumman-ludo-app
           path: build/app/outputs/flutter-apk/app-release.apk

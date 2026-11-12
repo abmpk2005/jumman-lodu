@@ -1,4 +1,4 @@
-name: Build Jumman Ludo Final Production Ready
+name: Build Ludo King Ultimate Pawn Fixed Edition
 
 on:
   push:
@@ -24,7 +24,7 @@ jobs:
           flutter-version: '3.19.6'
           channel: 'stable'
 
-      - name: Build Production Release APK
+      - name: Build Pawn Fixed Release APK
         run: |
           flutter create --org com.jumman.ludo --project-name jumman_ludo .
           
@@ -34,7 +34,7 @@ jobs:
           # ডিপেন্ডেন্সি
           cat << 'EOF' > pubspec.yaml
           name: jumman_ludo
-          description: "Jumman Ludo Final Production Ready"
+          description: "Jumman Ludo Pawn Fixed Edition"
           publish_to: "none"
           version: 1.0.0+1
           environment:
@@ -50,7 +50,7 @@ jobs:
             uses-material-design: true
           EOF
 
-          # চূড়ান্ত ত্রুটিমুক্ত কোড (main.dart)
+          # ঘুঁটিসহ সম্পূর্ণ ত্রুটিমুক্ত কোড (main.dart)
           cat << 'EOF' > lib/main.dart
           import 'dart:async';
           import 'dart:math';
@@ -131,7 +131,7 @@ jobs:
                       Icon(Icons.casino, size: 90, color: Color(0xFFFFD700)),
                       SizedBox(height: 16),
                       Text("JUMMAN LUDO", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 2)),
-                      Text("★ FINAL PRODUCTION EDITION ★", style: TextStyle(color: Colors.amberAccent, letterSpacing: 2, fontWeight: FontWeight.bold, fontSize: 13)),
+                      Text("★ PAWN FIXED MASTER EDITION ★", style: TextStyle(color: Colors.amberAccent, letterSpacing: 2, fontWeight: FontWeight.bold, fontSize: 13)),
                       SizedBox(height: 35),
                       CircularProgressIndicator(color: Colors.greenAccent),
                     ],
@@ -268,10 +268,10 @@ jobs:
             @override
             void initState() {
               super.initState();
-              _loadUserData();
+              _loadData();
             }
 
-            Future<void> _loadUserData() async {
+            Future<void> _loadData() async {
               try {
                 final sb = Supabase.instance.client;
                 final p = await sb.from('profiles').select().eq('phone_number', widget.phone).maybeSingle();
@@ -391,7 +391,7 @@ jobs:
                             GestureDetector(
                               onTap: () async {
                                 await Navigator.push(context, MaterialPageRoute(builder: (_) => WalletScreen(phone: widget.phone, userId: widget.userId, balance: _balance)));
-                                _loadUserData();
+                                _loadData();
                               },
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -443,7 +443,7 @@ jobs:
                     return;
                   }
                   await Navigator.push(context, MaterialPageRoute(builder: (_) => LudoGameScreen(entryFee: fee, userId: widget.userId, playerName: _name)));
-                  _loadUserData();
+                  _loadData();
                 },
                 child: Container(
                   height: 110,
@@ -598,7 +598,7 @@ jobs:
                               await Supabase.instance.client.from('profiles').update({'is_banned': next}).eq('id', p['id']);
                               setD(() => banned = next);
                             },
-                            child: Text(banned ? "আনব্লক করুন" : "ব্লক করুন", style: const TextStyle(color: Colors.white)),
+                            child: Text(banned ? "আনব্লক করুন" : "ব্লক করুন", style: TextStyle(color: Colors.white)),
                           )
                         ],
                       ),
@@ -738,11 +738,12 @@ jobs:
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Padding(padding: EdgeInsets.all(8), child: Row(children: [CircleAvatar(backgroundColor: Colors.green, radius: 12), SizedBox(width: 8), Text("প্রতিপক্ষ (সবুজ দল)", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))])),
+                    // বোর্ড এবং ঘুঁটি রেন্ডারিং সহ সম্পূর্ণ বোর্ড
                     Center(
                       child: SizedBox(
                         width: size, height: size,
                         child: CustomPaint(
-                          painter: FullLudoBoardPainter(step: step),
+                          painter: FullLudoBoardPainter(step: step, red: red, green: green),
                         ),
                       ),
                     ),
@@ -772,7 +773,9 @@ jobs:
 
           class FullLudoBoardPainter extends CustomPainter {
             final double step;
-            FullLudoBoardPainter({required this.step});
+            final List<int> red;
+            final List<int> green;
+            FullLudoBoardPainter({required this.step, required this.red, required this.green});
 
             @override
             void paint(Canvas canvas, Size size) {
@@ -820,10 +823,28 @@ jobs:
               canvas.drawPath(Path()..moveTo(step * 6, step * 9)..lineTo(step * 9, step * 9)..lineTo(cnt.dx, cnt.dy)..close(), Paint()..color = const Color(0xFFFBC02D));
               canvas.drawPath(Path()..moveTo(step * 6, step * 6)..lineTo(step * 6, step * 9)..lineTo(cnt.dx, cnt.dy)..close(), Paint()..color = const Color(0xFF1E88E5));
               canvas.drawPath(Path()..moveTo(step * 9, step * 6)..lineTo(step * 9, step * 9)..lineTo(cnt.dx, cnt.dy)..close(), Paint()..color = const Color(0xFF2E7D32));
+
+              // ঘুঁটি ড্র করা (পকেট বা বোর্ডে)
+              void drawPawn(double x, double y, Color col) {
+                canvas.drawCircle(Offset(x, y), step * 0.42, Paint()..color = col);
+                canvas.drawCircle(Offset(x, y), step * 0.42, Paint()..style = PaintingStyle.stroke..color = Colors.white..strokeWidth = 2);
+              }
+
+              // লাল ঘুঁটি পকেট পজিশন
+              List<Offset> rPockets = [Offset(step * 10.8, step * 1.8), Offset(step * 13.2, step * 1.8), Offset(step * 10.8, step * 4.2), Offset(step * 13.2, step * 4.2)];
+              for (int i = 0; i < 4; i++) {
+                if (red[i] == -1) drawPawn(rPockets[i].dx, rPockets[i].dy, Colors.red.shade700);
+              }
+
+              // সবুজ ঘুঁটি পকেট পজিশন
+              List<Offset> gPockets = [Offset(step * 10.8, step * 10.8), Offset(step * 13.2, step * 10.8), Offset(step * 10.8, step * 13.2), Offset(step * 13.2, step * 13.2)];
+              for (int i = 0; i < 4; i++) {
+                if (green[i] == -1) drawPawn(gPockets[i].dx, gPockets[i].dy, Colors.green.shade700);
+              }
             }
 
             @override
-            bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+            bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
           }
           EOF
 

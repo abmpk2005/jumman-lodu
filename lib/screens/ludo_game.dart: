@@ -1,0 +1,768 @@
+import 'dart:async';
+import 'dart:math';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+class RealLudoEngineScreen extends StatefulWidget {
+  final double entryFee;
+  final String userId;
+  final String phone;
+  final String playerName;
+  const RealLudoEngineScreen({super.key, required this.entryFee, required this.userId, required this.phone, required this.playerName});
+
+  @override
+  State<RealLudoEngineScreen> createState() => _RealLudoEngineScreenState();
+}
+
+class _RealLudoEngineScreenState extends State<RealLudoEngineScreen> with TickerProviderStateMixin {
+  int _playerDice = 1;
+  int _opponentDice = 1;
+  int _displayPlayerDice = 1;
+  int _displayOpponentDice = 1;
+
+  bool _isPlayerRolling = false;
+  bool _isOpponentRolling = false;
+  bool _waitingForPawnTap = false;
+  bool _isMovingStepByStep = false;
+  int _turn = 0; // 0 = Player (Yellow), 1 = Opponent (Red)
+  List<int> _movablePawns = [];
+
+  List<int> yellowPawns = [-1, -1, -1, -1];
+  List<int> redPawns = [-1, -1, -1, -1];
+
+  final Set<int> safeGlobalTiles = {1, 9, 14, 22, 27, 35, 40, 48};
+
+  Timer? _turnCountdownTimer;
+  int _secondsLeft = 15;
+
+  late AnimationController _glowCtrl;
+  late AnimationController _playerDiceRotCtrl;
+  late AnimationController _opponentDiceRotCtrl;
+
+  String _turnStatus = "👉 আপনার চাল! ছক্কায় ট্যাপ করুন";
+
+  static const List<Point<int>> trackPoints = [
+    Point(8, 0), Point(8, 1), Point(8, 2), Point(8, 3), Point(8, 4), Point(8, 5),
+    Point(9, 6), Point(10, 6), Point(11, 6), Point(12, 6), Point(13, 6), Point(14, 6),
+    Point(14, 7),
+    Point(14, 8), Point(13, 8), Point(12, 8), Point(11, 8), Point(10, 8), Point(9, 8),
+    Point(8, 9), Point(8, 10), Point(8, 11), Point(8, 12), Point(8, 13), Point(8, 14),
+    Point(7, 14),
+    Point(6, 14), Point(6, 13), Point(6, 12), Point(6, 11), Point(6, 10), Point(6, 9),
+    Point(5, 8), Point(4, 8), Point(3, 8), Point(2, 8), Point(1, 8), Point(0, 8),
+    Point(0, 7),
+    Point(0, 6), Point(1, 6), Point(2, 6), Point(3, 6), Point(4, 6), Point(5, 6),
+    Point(6, 5), Point(6, 4), Point(6, 3), Point(6, 2), Point(6, 1), Point(6, 0),
+    Point(7, 0),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _deductEntryFee();
+    _glowCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 550))..repeat(reverse: true);
+    _playerDiceRotCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 550));
+    _opponentDiceRotCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 550));
+    _startTurnTimer();
+  }
+
+  @override
+  void dispose() {
+    _turnCountdownTimer?.cancel();
+    _glowCtrl.dispose();
+    _playerDiceRotCtrl.dispose();
+    _opponentDiceRotCtrl.dispose();
+    super.dispose();
+  }
+
+  void _startTurnTimer() {
+    _turnCountdownTimer?.cancel();
+    setState(() => _secondsLeft = 15);
+    _turnCountdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_secondsLeft > 0) {
+        setState(() => _secondsLeft--);
+      } else {
+        timer.cancel();
+        if (_turn == 0) {
+          if (_waitingForPawnTap && _movablePawns.isNotEmpty) {
+            _onSelectPlayerPawn(_movablePawns.first);
+          } else {
+            _passTurnToOpponent();
+          }
+        }
+      }
+    });
+  }
+
+  Future<void> _deductEntryFee() async {
+    if (widget.entryFee <= 0) return;
+    try {
+      final supabase = Supabase.instance.client;
+      final wallet = await supabase.from('wallet_accounts').select().eq('user_id', widget.userId).single();
+      double cur = double.parse((wallet['balance'] ?? 0.0).toString());
+      await supabase.from('wallet_accounts').update({'balance': cur - widget.entryFee}).eq('user_id', widget.userId);
+    } catch (_) {}
+  }
+
+  Future<void> _recordWin() async {
+    try {
+      final supabase = Supabase.instance.client;
+      final wallet = await supabase.from('wallet_accounts').select().eq('user_id', widget.userId).single();
+      double cur = double.parse((wallet['balance'] ?? 0.0).toString());
+      double prize = widget.entryFee * 1.8;
+      await supabase.from('wallet_accounts').update({'balance': cur + prize}).eq('user_id', widget.userId);
+    } catch (_) {}
+  }
+
+  void _rollPlayerDice() {
+    if (_isPlayerRolling || _waitingForPawnTap || _isMovingStepByStep || _turn != 0) return;
+    HapticFeedback.mediumImpact();
+    
+    setState(() {
+      _isPlayerRolling = true;
+      _turnStatus = "🎲 ছক্কা ঘুরছে...";
+    });
+    _playerDiceRotCtrl.forward(from: 0.0);
+
+    int count = 0;
+    Timer.periodic(const Duration(milliseconds: 50), (timer) {
+      count++;
+      setState(() => _displayPlayerDice = Random().nextInt(6) + 1);
+      if (count >= 10) {
+        timer.cancel();
+        final finalRoll = Random().nextInt(6) + 1;
+        setState(() {
+          _playerDice = finalRoll;
+          _displayPlayerDice = finalRoll;
+          _isPlayerRolling = false;
+        });
+        _evaluatePlayerMoves();
+      }
+    });
+  }
+
+  void _evaluatePlayerMoves() {
+    List<int> valid = [];
+    for (int i = 0; i < 4; i++) {
+      if (yellowPawns[i] == -1 && _playerDice == 6) {
+        valid.add(i);
+      } else if (yellowPawns[i] >= 0 && (yellowPawns[i] + _playerDice <= 56)) {
+        valid.add(i);
+      }
+    }
+
+    if (valid.isEmpty) {
+      setState(() => _turnStatus = "কোনো চাল নেই! চাল মিস!");
+      Future.delayed(const Duration(milliseconds: 1200), () => _passTurnToOpponent());
+    } else {
+      setState(() {
+        _movablePawns = valid;
+        _waitingForPawnTap = true;
+        _turnStatus = "👉 চালার মতো ঘুঁটিতে ট্যাপ করুন!";
+      });
+    }
+  }
+
+  Future<void> _animatePawnStepByStep(int idx, int diceSteps, bool isYellow) async {
+    setState(() => _isMovingStepByStep = true);
+
+    if (isYellow ? yellowPawns[idx] == -1 : redPawns[idx] == -1) {
+      await Future.delayed(const Duration(milliseconds: 180));
+      setState(() {
+        if (isYellow) yellowPawns[idx] = 0; else redPawns[idx] = 0;
+      });
+      HapticFeedback.selectionClick();
+    } else {
+      for (int s = 0; s < diceSteps; s++) {
+        await Future.delayed(const Duration(milliseconds: 180));
+        setState(() {
+          if (isYellow) yellowPawns[idx]++; else redPawns[idx]++;
+        });
+        HapticFeedback.selectionClick();
+      }
+    }
+
+    setState(() => _isMovingStepByStep = false);
+  }
+
+  Future<void> _onSelectPlayerPawn(int idx) async {
+    if (!_waitingForPawnTap || !_movablePawns.contains(idx) || _isMovingStepByStep) return;
+    HapticFeedback.lightImpact();
+
+    setState(() {
+      _waitingForPawnTap = false;
+      _movablePawns.clear();
+    });
+
+    await _animatePawnStepByStep(idx, _playerDice, true);
+    bool captured = _checkCapture(yellowPawns, idx, true);
+
+    if (yellowPawns.every((p) => p == 56)) {
+      _showVictoryDialog(true);
+      return;
+    }
+
+    if (_playerDice == 6 || captured) {
+      setState(() => _turnStatus = captured ? "💥 ঘুঁটি কেটেছেন! বোনাস চাল!" : "🎉 ছক্কা উঠেছে! আবার চালুন!");
+      _startTurnTimer();
+    } else {
+      _passTurnToOpponent();
+    }
+  }
+
+  bool _checkCapture(List<int> pawns, int pawnIdx, bool isYellow) {
+    int stepVal = pawns[pawnIdx];
+    if (stepVal >= 0 && stepVal < 51) {
+      int myGlobal = getGlobalTileIndex(stepVal, isYellow);
+      if (!safeGlobalTiles.contains(myGlobal)) {
+        List<int> opp = isYellow ? redPawns : yellowPawns;
+        for (int j = 0; j < 4; j++) {
+          if (opp[j] >= 0 && opp[j] < 51) {
+            int oppGlobal = getGlobalTileIndex(opp[j], !isYellow);
+            if (myGlobal == oppGlobal) {
+              setState(() => opp[j] = -1);
+              HapticFeedback.heavyImpact();
+              return true;
+            }
+          }
+        }
+      }
+    }
+    return false;
+  }
+
+  int getGlobalTileIndex(int stepVal, bool isYellow) {
+    int startOffset = isYellow ? 27 : 1;
+    return (startOffset + stepVal) % 52;
+  }
+
+  void _passTurnToOpponent() {
+    _turnCountdownTimer?.cancel();
+    setState(() {
+      _turn = 1;
+      _turnStatus = "প্রতিপক্ষ চাল দিচ্ছে...";
+    });
+    _startTurnTimer();
+    Future.delayed(const Duration(milliseconds: 1000), () => _runOpponentTurn());
+  }
+
+  void _runOpponentTurn() {
+    if (_turn != 1) return;
+    setState(() => _isOpponentRolling = true);
+    _opponentDiceRotCtrl.forward(from: 0.0);
+
+    int count = 0;
+    Timer.periodic(const Duration(milliseconds: 50), (timer) {
+      count++;
+      setState(() => _displayOpponentDice = Random().nextInt(6) + 1);
+      if (count >= 10) {
+        timer.cancel();
+        final oppRoll = Random().nextInt(6) + 1;
+        setState(() {
+          _opponentDice = oppRoll;
+          _displayOpponentDice = oppRoll;
+          _isOpponentRolling = false;
+        });
+
+        Future.delayed(const Duration(milliseconds: 300), () => _executeOpponentMove());
+      }
+    });
+  }
+
+  Future<void> _executeOpponentMove() async {
+    List<int> valid = [];
+    for (int i = 0; i < 4; i++) {
+      if (redPawns[i] == -1 && _opponentDice == 6) {
+        valid.add(i);
+      } else if (redPawns[i] >= 0 && (redPawns[i] + _opponentDice <= 56)) {
+        valid.add(i);
+      }
+    }
+
+    if (valid.isNotEmpty) {
+      int chosen = valid.first;
+      for (var idx in valid) {
+        if (redPawns[idx] >= 0) {
+          int nextStep = redPawns[idx] + _opponentDice;
+          if (nextStep < 51) {
+            int nextG = getGlobalTileIndex(nextStep, false);
+            for (int y = 0; y < 4; y++) {
+              if (yellowPawns[y] >= 0 && yellowPawns[y] < 51) {
+                int yG = getGlobalTileIndex(yellowPawns[y], true);
+                if (nextG == yG && !safeGlobalTiles.contains(nextG)) {
+                  chosen = idx;
+                  break;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      await _animatePawnStepByStep(chosen, _opponentDice, false);
+      bool captured = _checkCapture(redPawns, chosen, false);
+
+      if (redPawns.every((p) => p == 56)) {
+        _showVictoryDialog(false);
+        return;
+      }
+
+      if (_opponentDice == 6 || captured) {
+        Future.delayed(const Duration(milliseconds: 1000), () => _runOpponentTurn());
+        return;
+      }
+    }
+
+    setState(() {
+      _turn = 0;
+      _turnStatus = "👉 আপনার চাল! ছক্কায় ট্যাপ করুন";
+    });
+    _startTurnTimer();
+  }
+
+  void _showVictoryDialog(bool playerWon) {
+    _turnCountdownTimer?.cancel();
+    if (playerWon) _recordWin();
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF4A0A3A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: Colors.amber, width: 2)),
+        title: Row(
+          children: [
+            Icon(playerWon ? Icons.emoji_events : Icons.sentiment_dissatisfied, color: Colors.amber, size: 30),
+            const SizedBox(width: 10),
+            Text(playerWon ? "বিজয়ী!" : "পরাজিত!", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Text(
+          playerWon ? "অভিনন্দন! আপনি ম্যাচটি জিতেছেন এবং ৳${(widget.entryFee * 1.8).toStringAsFixed(0)} পেয়েছেন!" : "দুঃখিত, প্রতিপক্ষ ম্যাচটি জিতে নিয়েছে!",
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.amber),
+            onPressed: () {
+              Navigator.pop(ctx);
+              Navigator.pop(context);
+            },
+            child: const Text("লবিতে ফিরুন", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final boardSize = MediaQuery.of(context).size.width;
+    final step = boardSize / 15.0;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFF19011F),
+      appBar: AppBar(
+        title: Text(widget.entryFee > 0 ? "ম্যাচ - ফি: ৳${widget.entryFee.toInt()}" : "ফ্রেন্ডলি ম্যাচ"),
+        backgroundColor: const Color(0xFF35042D),
+        elevation: 0,
+      ),
+      body: SafeArea(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // প্রতিপক্ষ বার
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          if (_turn == 1)
+                            SizedBox(
+                              width: 48,
+                              height: 48,
+                              child: CircularProgressIndicator(
+                                value: _secondsLeft / 15.0,
+                                strokeWidth: 3.5,
+                                color: _secondsLeft <= 5 ? Colors.redAccent : Colors.greenAccent,
+                              ),
+                            ),
+                          const CircleAvatar(radius: 20, backgroundColor: Colors.red, child: Icon(Icons.person, color: Colors.white, size: 22)),
+                        ],
+                      ),
+                      const SizedBox(width: 10),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text("প্রতিপক্ষ (লাল দল)", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                          Text(_turn == 1 ? "⏱️ ${_secondsLeft}s চালছেন..." : "অপেক্ষা করছেন", style: TextStyle(color: _turn == 1 ? Colors.greenAccent : Colors.white54, fontSize: 11)),
+                        ],
+                      ),
+                    ],
+                  ),
+                  AnimatedBuilder(
+                    animation: _opponentDiceRotCtrl,
+                    builder: (_, child) => Transform.rotate(
+                      angle: _opponentDiceRotCtrl.value * 2 * pi,
+                      child: Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade700,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: _turn == 1 ? Colors.amberAccent : Colors.white30, width: 2),
+                          boxShadow: [if (_turn == 1) const BoxShadow(color: Colors.amberAccent, blurRadius: 8)],
+                        ),
+                        child: Center(
+                          child: CustomPaint(size: const Size(34, 34), painter: TrueDicePainter(dots: _displayOpponentDice)),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // ফ্লাশ এজ-টু-এজ লুডু বোর্ড
+            SizedBox(
+              width: boardSize,
+              height: boardSize,
+              child: Stack(
+                children: [
+                  CustomPaint(
+                    size: Size(boardSize, boardSize),
+                    painter: TrueLudoPainter(step: step),
+                  ),
+                  ...List.generate(4, (i) {
+                    Offset pos = _getExactPawnOffset(redPawns[i], false, i, step);
+                    return Positioned(
+                      left: pos.dx - (step * 0.40),
+                      top: pos.dy - (step * 0.40),
+                      width: step * 0.80,
+                      height: step * 0.80,
+                      child: _buildRealisticPawn(const Color(0xFFD32F2F)),
+                    );
+                  }),
+                  ...List.generate(4, (i) {
+                    Offset pos = _getExactPawnOffset(yellowPawns[i], true, i, step);
+                    bool canTap = _waitingForPawnTap && _movablePawns.contains(i);
+
+                    return Positioned(
+                      left: pos.dx - (step * 0.42),
+                      top: pos.dy - (step * 0.42),
+                      width: step * 0.84,
+                      height: step * 0.84,
+                      child: GestureDetector(
+                        onTap: canTap ? () => _onSelectPlayerPawn(i) : null,
+                        child: AnimatedBuilder(
+                          animation: _glowCtrl,
+                          builder: (_, __) {
+                            return Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                Transform.scale(
+                                  scale: canTap ? 1.0 + (_glowCtrl.value * 0.2) : 1.0,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border: canTap ? Border.all(color: Colors.amberAccent, width: 3.5) : null,
+                                      boxShadow: canTap ? [BoxShadow(color: Colors.amberAccent.withOpacity(0.9), blurRadius: 10, spreadRadius: 3)] : null,
+                                    ),
+                                    child: _buildRealisticPawn(Colors.amber.shade700),
+                                  ),
+                                ),
+                                if (canTap)
+                                  const Positioned(
+                                    top: -4,
+                                    child: Text("👆", style: TextStyle(fontSize: 16)),
+                                  ),
+                              ],
+                            );
+                          },
+                        ),
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
+
+            // স্ট্যাটাস বার
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              decoration: BoxDecoration(color: const Color(0xFF35042D), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.amber.withOpacity(0.4))),
+              child: Text(_turnStatus, style: const TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold, fontSize: 13)),
+            ),
+
+            // প্লেয়ার কন্ট্রোল ও লাইভ ৩ডি ডাইস
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              color: const Color(0xFF24022B),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          if (_turn == 0)
+                            SizedBox(
+                              width: 48,
+                              height: 48,
+                              child: CircularProgressIndicator(
+                                value: _secondsLeft / 15.0,
+                                strokeWidth: 3.5,
+                                color: _secondsLeft <= 5 ? Colors.redAccent : Colors.amberAccent,
+                              ),
+                            ),
+                          CircleAvatar(radius: 20, backgroundColor: Colors.amber, child: Text(widget.playerName.isNotEmpty ? widget.playerName[0].toUpperCase() : 'P', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold))),
+                        ],
+                      ),
+                      const SizedBox(width: 10),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(widget.playerName, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14)),
+                          Text(_turn == 0 ? "⏱️ ${_secondsLeft}s আপনার চাল" : "অপেক্ষা করছেন", style: TextStyle(color: _turn == 0 ? Colors.amberAccent : Colors.white54, fontSize: 11)),
+                        ],
+                      ),
+                    ],
+                  ),
+
+                  GestureDetector(
+                    onTap: (_turn == 0 && !_isPlayerRolling && !_waitingForPawnTap && !_isMovingStepByStep) ? _rollPlayerDice : null,
+                    child: AnimatedBuilder(
+                      animation: _playerDiceRotCtrl,
+                      builder: (_, child) => Transform.rotate(
+                        angle: _playerDiceRotCtrl.value * 2 * pi,
+                        child: Container(
+                          width: 66,
+                          height: 66,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: (_turn == 0 && !_waitingForPawnTap && !_isMovingStepByStep)
+                                  ? [const Color(0xFF29B6F6), const Color(0xFF0288D1)]
+                                  : [Colors.grey.shade700, Colors.grey.shade900],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: (_turn == 0 && !_waitingForPawnTap) ? Colors.amberAccent : Colors.transparent, width: 3),
+                            boxShadow: [
+                              if (_turn == 0 && !_waitingForPawnTap) const BoxShadow(color: Colors.amberAccent, blurRadius: 12, spreadRadius: 1)
+                            ],
+                          ),
+                          child: Center(
+                            child: CustomPaint(
+                              size: const Size(42, 42),
+                              painter: TrueDicePainter(dots: _displayPlayerDice),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRealisticPawn(Color color) {
+    return Container(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
+        border: Border.all(color: Colors.white, width: 2),
+        boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 4, offset: Offset(0, 2))],
+      ),
+      child: const Center(
+        child: Icon(Icons.star, size: 14, color: Colors.white),
+      ),
+    );
+  }
+
+  Offset _getExactPawnOffset(int stepVal, bool isYellow, int slot, double step) {
+    if (stepVal == -1) {
+      if (isYellow) {
+        final yellowPockets = [
+          Offset(step * 1.8, step * 10.8),
+          Offset(step * 3.8, step * 10.8),
+          Offset(step * 1.8, step * 12.8),
+          Offset(step * 3.8, step * 12.8),
+        ];
+        return yellowPockets[slot];
+      } else {
+        final redPockets = [
+          Offset(step * 10.8, step * 1.8),
+          Offset(step * 12.8, step * 1.8),
+          Offset(step * 10.8, step * 3.8),
+          Offset(step * 12.8, step * 3.8),
+        ];
+        return redPockets[slot];
+      }
+    }
+
+    if (stepVal < 51) {
+      int globalIdx = getGlobalTileIndex(stepVal, isYellow);
+      final pt = trackPoints[globalIdx];
+      return Offset((pt.x + 0.5) * step, (pt.y + 0.5) * step);
+    }
+
+    int h = stepVal - 51;
+    if (isYellow) {
+      return Offset(step * 7.5, (13.5 - h) * step);
+    } else {
+      return Offset(step * 7.5, (1.5 + h) * step);
+    }
+  }
+}
+
+class TrueLudoPainter extends CustomPainter {
+  final double step;
+  TrueLudoPainter({required this.step});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..style = PaintingStyle.fill;
+
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), Paint()..color = Colors.white);
+
+    paint.color = const Color(0xFF1E88E5);
+    canvas.drawRect(Rect.fromLTWH(0, 0, step * 6, step * 6), paint);
+
+    paint.color = const Color(0xFFE53935);
+    canvas.drawRect(Rect.fromLTWH(step * 9, 0, step * 6, step * 6), paint);
+
+    paint.color = const Color(0xFFFBC02D);
+    canvas.drawRect(Rect.fromLTWH(0, step * 9, step * 6, step * 6), paint);
+
+    paint.color = const Color(0xFF2E7D32);
+    canvas.drawRect(Rect.fromLTWH(step * 9, step * 9, step * 6, step * 6), paint);
+
+    void drawBasePockets(double x, double y, Color c) {
+      final rrect = RRect.fromRectAndRadius(Rect.fromLTWH(x + step * 0.8, y + step * 0.8, step * 4.4, step * 4.4), const Radius.circular(16));
+      canvas.drawRRect(rrect, Paint()..color = Colors.white);
+
+      final slotCoords = [
+        Offset(x + step * 1.8, y + step * 1.8),
+        Offset(x + step * 3.8, y + step * 1.8),
+        Offset(x + step * 1.8, y + step * 3.8),
+        Offset(x + step * 3.8, y + step * 3.8),
+      ];
+      for (var pt in slotCoords) {
+        canvas.drawCircle(pt, step * 0.65, Paint()..color = c.withOpacity(0.15));
+        canvas.drawCircle(pt, step * 0.65, Paint()..color = c..style = PaintingStyle.stroke..strokeWidth = 2);
+      }
+    }
+
+    drawBasePockets(0, 0, const Color(0xFF1E88E5));
+    drawBasePockets(step * 9, 0, const Color(0xFFE53935));
+    drawBasePockets(0, step * 9, const Color(0xFFFBC02D));
+    drawBasePockets(step * 9, step * 9, const Color(0xFF2E7D32));
+
+    for (int r = 1; r <= 5; r++) {
+      canvas.drawRect(Rect.fromLTWH(7 * step, r * step, step, step), Paint()..color = const Color(0xFFE53935));
+    }
+    for (int r = 9; r <= 13; r++) {
+      canvas.drawRect(Rect.fromLTWH(7 * step, r * step, step, step), Paint()..color = const Color(0xFFFBC02D));
+    }
+    for (int c = 1; c <= 5; c++) {
+      canvas.drawRect(Rect.fromLTWH(c * step, 7 * step, step, step), Paint()..color = const Color(0xFF1E88E5));
+    }
+    for (int c = 9; c <= 13; c++) {
+      canvas.drawRect(Rect.fromLTWH(c * step, 7 * step, step, step), Paint()..color = const Color(0xFF2E7D32));
+    }
+
+    canvas.drawRect(Rect.fromLTWH(8 * step, 1 * step, step, step), Paint()..color = const Color(0xFFE53935));
+    canvas.drawRect(Rect.fromLTWH(6 * step, 13 * step, step, step), Paint()..color = const Color(0xFFFBC02D));
+    canvas.drawRect(Rect.fromLTWH(1 * step, 6 * step, step, step), Paint()..color = const Color(0xFF1E88E5));
+    canvas.drawRect(Rect.fromLTWH(13 * step, 8 * step, step, step), Paint()..color = const Color(0xFF2E7D32));
+
+    void drawStar(double c, double r) {
+      final pt = Offset((c + 0.5) * step, (r + 0.5) * step);
+      canvas.drawCircle(pt, step * 0.32, Paint()..color = Colors.black26);
+    }
+
+    drawStar(6, 2);
+    drawStar(12, 6);
+    drawStar(8, 12);
+    drawStar(2, 8);
+
+    final border = Paint()..style = PaintingStyle.stroke..color = Colors.black26..strokeWidth = 1.0;
+    for (int r = 0; r < 15; r++) {
+      for (int c = 0; c < 15; c++) {
+        canvas.drawRect(Rect.fromLTWH(c * step, r * step, step, step), border);
+      }
+    }
+
+    final center = Offset(step * 7.5, step * 7.5);
+    canvas.drawPath(Path()..moveTo(step * 6, step * 6)..lineTo(step * 9, step * 6)..lineTo(center.dx, center.dy)..close(), Paint()..color = const Color(0xFFE53935));
+    canvas.drawPath(Path()..moveTo(step * 6, step * 9)..lineTo(step * 9, step * 9)..lineTo(center.dx, center.dy)..close(), Paint()..color = const Color(0xFFFBC02D));
+    canvas.drawPath(Path()..moveTo(step * 6, step * 6)..lineTo(step * 6, step * 9)..lineTo(center.dx, center.dy)..close(), Paint()..color = const Color(0xFF1E88E5));
+    canvas.drawPath(Path()..moveTo(step * 9, step * 6)..lineTo(step * 9, step * 9)..lineTo(center.dx, center.dy)..close(), Paint()..color = const Color(0xFF2E7D32));
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class TrueDicePainter extends CustomPainter {
+  final int dots;
+  TrueDicePainter({required this.dots});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final pip = Paint()..color = Colors.white..style = PaintingStyle.fill;
+    final shadow = Paint()..color = Colors.black38..style = PaintingStyle.fill;
+    final r = size.width * 0.11;
+    final w = size.width;
+    final h = size.height;
+
+    void drawDot(double x, double y) {
+      canvas.drawCircle(Offset(x, y + 1.2), r, shadow);
+      canvas.drawCircle(Offset(x, y), r, pip);
+    }
+
+    if (dots == 1) {
+      drawDot(w * 0.5, h * 0.5);
+    } else if (dots == 2) {
+      drawDot(w * 0.28, h * 0.28);
+      drawDot(w * 0.72, h * 0.72);
+    } else if (dots == 3) {
+      drawDot(w * 0.25, h * 0.25);
+      drawDot(w * 0.5, h * 0.5);
+      drawDot(w * 0.75, h * 0.75);
+    } else if (dots == 4) {
+      drawDot(w * 0.28, h * 0.28);
+      drawDot(w * 0.72, h * 0.28);
+      drawDot(w * 0.28, h * 0.72);
+      drawDot(w * 0.72, h * 0.72);
+    } else if (dots == 5) {
+      drawDot(w * 0.28, h * 0.28);
+      drawDot(w * 0.72, h * 0.28);
+      drawDot(w * 0.5, h * 0.5);
+      drawDot(w * 0.28, h * 0.72);
+      drawDot(w * 0.72, h * 0.72);
+    } else if (dots == 6) {
+      drawDot(w * 0.28, h * 0.22);
+      drawDot(w * 0.72, h * 0.22);
+      drawDot(w * 0.28, h * 0.5);
+      drawDot(w * 0.72, h * 0.5);
+      drawDot(w * 0.28, h * 0.78);
+      drawDot(w * 0.72, h * 0.78);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}

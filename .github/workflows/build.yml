@@ -1,4 +1,4 @@
-name: Build Ludo King Ultimate Release
+name: Build Jumman Ludo Final Master Fixed
 
 on:
   push:
@@ -24,7 +24,7 @@ jobs:
           flutter-version: '3.19.6'
           channel: 'stable'
 
-      - name: Build Ultimate Release APK
+      - name: Build Final Release APK
         run: |
           flutter create --org com.jumman.ludo --project-name jumman_ludo .
           
@@ -34,7 +34,7 @@ jobs:
           # ডিপেন্ডেন্সি
           cat << 'EOF' > pubspec.yaml
           name: jumman_ludo
-          description: "Jumman Ludo Ultimate Edition"
+          description: "Jumman Ludo Final Master Edition"
           publish_to: "none"
           version: 1.0.0+1
           environment:
@@ -50,7 +50,7 @@ jobs:
             uses-material-design: true
           EOF
 
-          # চূড়ান্ত ও সম্পূর্ণ গেম ইঞ্জিন কোড (main.dart)
+          # ত্রুটিমুক্ত ফাইনাল কোড (main.dart)
           cat << 'EOF' > lib/main.dart
           import 'dart:async';
           import 'dart:math';
@@ -131,7 +131,7 @@ jobs:
                       Icon(Icons.casino, size: 90, color: Color(0xFFFFD700)),
                       SizedBox(height: 16),
                       Text("JUMMAN LUDO", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 2)),
-                      Text("★ ULTIMATE LUDO KING EDITION ★", style: TextStyle(color: Colors.amberAccent, letterSpacing: 2, fontWeight: FontWeight.bold, fontSize: 13)),
+                      Text("★ MASTER RELEASE EDITION ★", style: TextStyle(color: Colors.amberAccent, letterSpacing: 2, fontWeight: FontWeight.bold, fontSize: 13)),
                       SizedBox(height: 35),
                       CircularProgressIndicator(color: Colors.greenAccent),
                     ],
@@ -268,10 +268,10 @@ jobs:
             @override
             void initState() {
               super.initState();
-              _loadData();
+              _loadUserData();
             }
 
-            Future<void> _loadData() async {
+            Future<void> _loadUserData() async {
               try {
                 final sb = Supabase.instance.client;
                 final p = await sb.from('profiles').select().eq('phone_number', widget.phone).maybeSingle();
@@ -738,7 +738,6 @@ jobs:
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Padding(padding: EdgeInsets.all(8), child: Row(children: [CircleAvatar(backgroundColor: Colors.green, radius: 12), SizedBox(width: 8), Text("প্রতিপক্ষ (সবুজ দল)", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))])),
-                    // আসল লুডু বোর্ড ক্যানভাস (কোনো ফাঁকা বাক্স বা প্লেসহোল্ডার নেই)
                     Center(
                       child: SizedBox(
                         width: size, height: size,
@@ -828,7 +827,7 @@ jobs:
           }
           EOF
 
-      - name: Build Production Release APK
+      - name: Build Final Production Release APK
         run: |
           flutter pub get
           flutter build apk --release
@@ -836,5 +835,5 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: jumman-ludo-production-release
+          name: jumman-ludo-final-production-release
           path: build/app/outputs/flutter-apk/app-release.apk
